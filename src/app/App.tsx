@@ -6,7 +6,8 @@ import { StatusBar } from "../components/layout/StatusBar";
 import { TopBar } from "../components/layout/TopBar";
 import { ImageWorkspace } from "../components/preview/ImageWorkspace";
 import { getClipboardImage, importImageFile, readObjectUrlBytes } from "../features/import/importImage";
-import { cutoutPreviewUrl, exportCutout, removeBackground } from "../lib/tauri/commands";
+import { formatPalette, type PaletteExportFormat } from "../features/palette/exportPalette";
+import { cutoutPreviewUrl, exportCutout, extractPalette, removeBackground, writeTextFile } from "../lib/tauri/commands";
 import { useAppStore } from "../store/useAppStore";
 
 export function App() {
@@ -17,6 +18,9 @@ export function App() {
     image,
     removal,
     viewMode,
+    palette,
+    paletteSource,
+    paletteCount,
     operationStatus,
     message,
     previewBackground,
@@ -26,6 +30,9 @@ export function App() {
     setPreviewBackground,
     setRemoval,
     setViewMode,
+    setPalette,
+    setPaletteSource,
+    setPaletteCount,
     zoomIn,
     zoomOut,
     resetZoom,
@@ -89,6 +96,36 @@ export function App() {
     }
   }
 
+  async function handleExtractPalette() {
+    if (!image) return;
+    if (paletteSource === "subject" && !removal) return;
+    setOperation("processing", "Extracting palette…");
+    try {
+      const bytes = await readObjectUrlBytes(image.sourceUrl);
+      const cutoutPath = paletteSource === "subject" ? removal?.cutoutPath : undefined;
+      setPalette(await extractPalette(bytes, paletteSource, paletteCount, cutoutPath));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Palette extraction failed.";
+      setOperation("error", message);
+    }
+  }
+
+  async function handleExportPalette(format: PaletteExportFormat) {
+    if (!palette) return;
+    try {
+      const destination = await save({
+        defaultPath: `palette.${format}`,
+        filters: [{ name: format.toUpperCase(), extensions: [format] }],
+      });
+      if (!destination) return;
+      await writeTextFile(formatPalette(palette, format), destination);
+      setOperation("success", "Palette exported");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Export failed.";
+      setOperation("error", message);
+    }
+  }
+
   function handleDragEnter(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
     dragDepth.current += 1;
@@ -114,6 +151,7 @@ export function App() {
   const isProcessing = operationStatus === "processing";
   const canRemoveBackground = Boolean(image) && !isProcessing;
   const canExport = Boolean(removal) && !isProcessing;
+  const canExtractPalette = Boolean(image) && !isProcessing && (paletteSource === "original" || Boolean(removal));
   const showCutout = viewMode === "cutout" && Boolean(removal);
 
   return (
@@ -127,12 +165,13 @@ export function App() {
         tabIndex={-1}
       />
       <TopBar
-        hasImage={Boolean(image)}
         canRemoveBackground={canRemoveBackground}
+        canExtractPalette={canExtractPalette}
         canExport={canExport}
         onOpen={() => fileInputRef.current?.click()}
         onPaste={() => void handlePaste()}
         onRemoveBackground={() => void handleRemoveBackground()}
+        onExtractPalette={() => void handleExtractPalette()}
         onExport={() => void handleExport()}
       />
       <div className="app-content">
@@ -165,6 +204,14 @@ export function App() {
           onBackgroundChange={setPreviewBackground}
           onViewModeChange={setViewMode}
           onRemoveBackground={() => void handleRemoveBackground()}
+          palette={palette}
+          paletteSource={paletteSource}
+          paletteCount={paletteCount}
+          canExtractPalette={canExtractPalette}
+          onPaletteSourceChange={setPaletteSource}
+          onPaletteCountChange={setPaletteCount}
+          onExtractPalette={() => void handleExtractPalette()}
+          onExportPalette={(format) => void handleExportPalette(format)}
         />
       </div>
       <StatusBar image={image} status={operationStatus} message={message} />

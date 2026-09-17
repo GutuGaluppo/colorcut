@@ -25,13 +25,16 @@ export type PaletteColor = {
   hex: string;
   rgb: RgbColor;
   hsl: HslColor;
-  oklch?: OklchColor;
+  oklch: OklchColor;
   percentage: number;
 };
 
+export type PaletteSource = "original" | "subject";
+export type PaletteCount = 4 | 6 | 8 | 12 | 16;
+
 export type PaletteResult = {
-  source: "original" | "subject";
-  count: 4 | 6 | 8 | 12 | 16;
+  source: PaletteSource;
+  count: PaletteCount;
   colors: PaletteColor[];
 };
 

@@ -37,6 +37,7 @@ pub fn run() {
             commands::background_remove::remove_background,
             commands::palette_extract::extract_palette,
             commands::export::export_cutout,
+            commands::export::write_text_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running ColorCut");

@@ -2,22 +2,24 @@ import { ClipboardPaste, Download, FolderOpen, Palette, Scissors } from "lucide-
 import { BrandMark } from "../ui/BrandMark";
 
 type TopBarProps = {
-  hasImage: boolean;
   canRemoveBackground: boolean;
+  canExtractPalette: boolean;
   canExport: boolean;
   onOpen: () => void;
   onPaste: () => void;
   onRemoveBackground: () => void;
+  onExtractPalette: () => void;
   onExport: () => void;
 };
 
 export function TopBar({
-  hasImage,
   canRemoveBackground,
+  canExtractPalette,
   canExport,
   onOpen,
   onPaste,
   onRemoveBackground,
+  onExtractPalette,
   onExport,
 }: TopBarProps) {
   return (
@@ -41,7 +43,7 @@ export function TopBar({
         <button className="button button--quiet" type="button" disabled={!canRemoveBackground} onClick={onRemoveBackground}>
           <Scissors size={17} /> Remove background
         </button>
-        <button className="button button--quiet" type="button" disabled={!hasImage}>
+        <button className="button button--quiet" type="button" disabled={!canExtractPalette} onClick={onExtractPalette}>
           <Palette size={17} /> Extract palette
         </button>
         <button className="button button--primary" type="button" disabled={!canExport} onClick={onExport}>

@@ -1,7 +1,12 @@
 import { Palette, Scissors, Sparkles } from "lucide-react";
-import type { ImageAsset, PreviewBackground, RemovalResult } from "../../types/domain";
+import type { ImageAsset, PaletteCount, PaletteResult, PaletteSource, PreviewBackground, RemovalResult } from "../../types/domain";
 import type { ViewMode } from "../../store/useAppStore";
+import type { PaletteExportFormat } from "../../features/palette/exportPalette";
 import { PalettePreview } from "../palette/PalettePreview";
+import { PaletteResults } from "../palette/PaletteResults";
+
+const PALETTE_COUNTS: PaletteCount[] = [4, 6, 8, 12, 16];
+const PALETTE_EXPORT_FORMATS: PaletteExportFormat[] = ["json", "css", "txt"];
 
 type InspectorProps = {
   image: ImageAsset | null;
@@ -13,6 +18,14 @@ type InspectorProps = {
   onBackgroundChange: (background: PreviewBackground) => void;
   onViewModeChange: (mode: ViewMode) => void;
   onRemoveBackground: () => void;
+  palette: PaletteResult | null;
+  paletteSource: PaletteSource;
+  paletteCount: PaletteCount;
+  canExtractPalette: boolean;
+  onPaletteSourceChange: (source: PaletteSource) => void;
+  onPaletteCountChange: (count: PaletteCount) => void;
+  onExtractPalette: () => void;
+  onExportPalette: (format: PaletteExportFormat) => void;
 };
 
 function formatBytes(bytes: number) {
@@ -30,6 +43,14 @@ export function Inspector({
   onBackgroundChange,
   onViewModeChange,
   onRemoveBackground,
+  palette,
+  paletteSource,
+  paletteCount,
+  canExtractPalette,
+  onPaletteSourceChange,
+  onPaletteCountChange,
+  onExtractPalette,
+  onExportPalette,
 }: InspectorProps) {
   return (
     <aside className="inspector" aria-label="Image inspector">
@@ -96,12 +117,59 @@ export function Inspector({
 
       <section className="inspector__section">
         <div className="section-heading"><Palette size={17} /><h2>Palette</h2></div>
-        <PalettePreview />
+        {palette ? <PaletteResults palette={palette} /> : <PalettePreview />}
         <div className="inline-fields">
-          <label>Source<select disabled={!image} defaultValue="original"><option value="original">Original</option><option value="subject">Subject</option></select></label>
-          <label>Colors<select disabled={!image} defaultValue="8"><option>4</option><option>6</option><option>8</option><option>12</option><option>16</option></select></label>
+          <label>
+            Source
+            <select
+              disabled={!image}
+              value={paletteSource}
+              onChange={(event) => onPaletteSourceChange(event.target.value as PaletteSource)}
+            >
+              <option value="original">Original</option>
+              <option value="subject" disabled={!removal}>
+                Subject
+              </option>
+            </select>
+          </label>
+          <label>
+            Colors
+            <select
+              disabled={!image}
+              value={paletteCount}
+              onChange={(event) => onPaletteCountChange(Number(event.target.value) as PaletteCount)}
+            >
+              {PALETTE_COUNTS.map((count) => (
+                <option key={count} value={count}>
+                  {count}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
-        <button className="button button--secondary button--full" type="button" disabled={!image}>Extract palette</button>
+        <button
+          className="button button--secondary button--full"
+          type="button"
+          disabled={!canExtractPalette}
+          onClick={onExtractPalette}
+        >
+          {isProcessing ? "Extracting…" : "Extract palette"}
+        </button>
+
+        {palette && (
+          <div className="palette-export-row" role="group" aria-label="Export palette">
+            {PALETTE_EXPORT_FORMATS.map((format) => (
+              <button
+                key={format}
+                type="button"
+                className="button button--quiet palette-export-row__button"
+                onClick={() => onExportPalette(format)}
+              >
+                {format.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        )}
       </section>
     </aside>
   );

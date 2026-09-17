@@ -5,12 +5,13 @@ import { TopBar } from "./TopBar";
 function renderTopBar(overrides: Partial<Parameters<typeof TopBar>[0]> = {}) {
   return render(
     <TopBar
-      hasImage={false}
       canRemoveBackground={false}
+      canExtractPalette={false}
       canExport={false}
       onOpen={vi.fn()}
       onPaste={vi.fn()}
       onRemoveBackground={vi.fn()}
+      onExtractPalette={vi.fn()}
       onExport={vi.fn()}
       {...overrides}
     />,
@@ -29,7 +30,7 @@ describe("TopBar", () => {
   });
 
   it("enables remove background and extract palette once an image is present", () => {
-    renderTopBar({ hasImage: true, canRemoveBackground: true });
+    renderTopBar({ canRemoveBackground: true, canExtractPalette: true });
 
     expect(screen.getByRole("button", { name: /remove background/i })).toBeEnabled();
     expect(screen.getByRole("button", { name: /extract palette/i })).toBeEnabled();
@@ -37,7 +38,7 @@ describe("TopBar", () => {
   });
 
   it("enables export only once a cutout exists", () => {
-    renderTopBar({ hasImage: true, canRemoveBackground: true, canExport: true });
+    renderTopBar({ canRemoveBackground: true, canExtractPalette: true, canExport: true });
 
     expect(screen.getByRole("button", { name: /export/i })).toBeEnabled();
   });
@@ -54,15 +55,25 @@ describe("TopBar", () => {
     expect(onPaste).toHaveBeenCalledTimes(1);
   });
 
-  it("invokes the remove background and export handlers", () => {
+  it("invokes the remove background, extract palette, and export handlers", () => {
     const onRemoveBackground = vi.fn();
+    const onExtractPalette = vi.fn();
     const onExport = vi.fn();
-    renderTopBar({ hasImage: true, canRemoveBackground: true, canExport: true, onRemoveBackground, onExport });
+    renderTopBar({
+      canRemoveBackground: true,
+      canExtractPalette: true,
+      canExport: true,
+      onRemoveBackground,
+      onExtractPalette,
+      onExport,
+    });
 
     fireEvent.click(screen.getByRole("button", { name: /remove background/i }));
+    fireEvent.click(screen.getByRole("button", { name: /extract palette/i }));
     fireEvent.click(screen.getByRole("button", { name: /export/i }));
 
     expect(onRemoveBackground).toHaveBeenCalledTimes(1);
+    expect(onExtractPalette).toHaveBeenCalledTimes(1);
     expect(onExport).toHaveBeenCalledTimes(1);
   });
 });

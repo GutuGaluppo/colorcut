@@ -1,5 +1,5 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
-import type { PaletteResult, RemovalResult } from "../../types/domain";
+import type { PaletteCount, PaletteResult, PaletteSource, RemovalResult } from "../../types/domain";
 
 function assertTauriRuntime() {
   if (!("__TAURI_INTERNALS__" in window)) {
@@ -22,11 +22,22 @@ export function cutoutPreviewUrl(cutoutPath: string): string {
 }
 
 export async function extractPalette(
-  imagePath: string,
-  source: "original" | "subject",
-  count: 4 | 6 | 8 | 12 | 16,
+  imageBytes: Uint8Array,
+  source: PaletteSource,
+  count: PaletteCount,
+  cutoutPath?: string,
 ): Promise<PaletteResult> {
   assertTauriRuntime();
-  return invoke<PaletteResult>("extract_palette", { imagePath, source, count });
+  return invoke<PaletteResult>("extract_palette", {
+    imageBytes: Array.from(imageBytes),
+    source,
+    count,
+    cutoutPath,
+  });
+}
+
+export async function writeTextFile(contents: string, destinationPath: string): Promise<void> {
+  assertTauriRuntime();
+  return invoke<void>("write_text_file", { contents, destinationPath });
 }
 

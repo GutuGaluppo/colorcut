@@ -139,5 +139,5 @@ For Tauri/runtime changes, also run `pnpm tauri dev` or `pnpm tauri build` on a 
 
 ## Current priority
 
-Implement and verify the shared image import/preview flow. Keep native inference commands as explicit placeholders until model evaluation is documented.
+Phases 1 (import/preview) and 2 (background removal) are complete and verified — see `docs/DECISIONS.md` ADR-005 for the approved model/runtime. Implement Phase 3: palette extraction (median-cut quantization, Original/Subject source, 4/6/8/12/16 color counts, HEX/RGB/HSL/OKLCH with percentages, clipboard/JSON/CSS/TXT/PNG-strip export). Keep it behind the same typed command boundary as background removal; `extract_palette` is currently an explicit placeholder.
 
