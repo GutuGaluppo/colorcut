@@ -7,4 +7,3 @@ pub struct RemovalResult {
     pub mask_path: Option<String>,
     pub processing_time_ms: u64,
 }
-

@@ -12,7 +12,6 @@ export type ImageAsset = {
 
 export type RemovalResult = {
   cutoutPath: string;
-  previewUrl?: string;
   maskPath?: string;
   processingTimeMs: number;
 };

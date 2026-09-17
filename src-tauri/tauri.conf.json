@@ -23,7 +23,11 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost blob: data:; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost"
+      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost blob: data:; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost",
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["$APPCACHE/**/*"]
+      }
     }
   },
   "bundle": {
@@ -31,7 +35,8 @@
     "targets": "all",
     "category": "GraphicsAndDesign",
     "shortDescription": "Local palette and cutout utility",
-    "longDescription": "ColorCut removes image backgrounds and extracts reusable color palettes locally."
+    "longDescription": "ColorCut removes image backgrounds and extracts reusable color palettes locally.",
+    "resources": ["resources/models/*"]
   }
 }
 

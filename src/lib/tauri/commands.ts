@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import type { PaletteResult, RemovalResult } from "../../types/domain";
 
 function assertTauriRuntime() {
@@ -7,9 +7,18 @@ function assertTauriRuntime() {
   }
 }
 
-export async function removeBackground(imagePath: string): Promise<RemovalResult> {
+export async function removeBackground(imageBytes: Uint8Array): Promise<RemovalResult> {
   assertTauriRuntime();
-  return invoke<RemovalResult>("remove_background", { imagePath });
+  return invoke<RemovalResult>("remove_background", { imageBytes: Array.from(imageBytes) });
+}
+
+export async function exportCutout(sourcePath: string, destinationPath: string): Promise<void> {
+  assertTauriRuntime();
+  return invoke<void>("export_cutout", { sourcePath, destinationPath });
+}
+
+export function cutoutPreviewUrl(cutoutPath: string): string {
+  return convertFileSrc(cutoutPath);
 }
 
 export async function extractPalette(

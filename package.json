@@ -10,10 +10,12 @@
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
     "test:watch": "vitest",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "fetch-models": "bash scripts/fetch-models.sh"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.8.0",
+    "@tauri-apps/plugin-dialog": "~2.7.3",
     "clsx": "^2.1.1",
     "lucide-react": "^0.544.0",
     "react": "^19.1.1",

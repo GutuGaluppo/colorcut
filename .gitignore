@@ -1,6 +1,8 @@
 node_modules/
 dist/
 target/
+.env
+.env.*
 src-tauri/target/
 .DS_Store
 *.log
@@ -10,3 +12,7 @@ src-tauri/target/
 !src-tauri/icons/*.png
 src-tauri/resources/models/*
 !src-tauri/resources/models/.gitkeep
+Images_QA/
+/original/
+/remove_bg_results/
+/remove_bg_results_v2/

@@ -5,4 +5,3 @@ mod removal_result;
 pub use image_asset::ImageMetadata;
 pub use palette_result::PaletteResult;
 pub use removal_result::RemovalResult;
-

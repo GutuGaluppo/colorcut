@@ -1,11 +1,18 @@
 import { Palette, Scissors, Sparkles } from "lucide-react";
-import type { ImageAsset, PreviewBackground } from "../../types/domain";
+import type { ImageAsset, PreviewBackground, RemovalResult } from "../../types/domain";
+import type { ViewMode } from "../../store/useAppStore";
 import { PalettePreview } from "../palette/PalettePreview";
 
 type InspectorProps = {
   image: ImageAsset | null;
+  removal: RemovalResult | null;
+  viewMode: ViewMode;
+  isProcessing: boolean;
+  canRemoveBackground: boolean;
   background: PreviewBackground;
   onBackgroundChange: (background: PreviewBackground) => void;
+  onViewModeChange: (mode: ViewMode) => void;
+  onRemoveBackground: () => void;
 };
 
 function formatBytes(bytes: number) {
@@ -13,7 +20,17 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function Inspector({ image, background, onBackgroundChange }: InspectorProps) {
+export function Inspector({
+  image,
+  removal,
+  viewMode,
+  isProcessing,
+  canRemoveBackground,
+  background,
+  onBackgroundChange,
+  onViewModeChange,
+  onRemoveBackground,
+}: InspectorProps) {
   return (
     <aside className="inspector" aria-label="Image inspector">
       <section className="inspector__section">
@@ -31,10 +48,35 @@ export function Inspector({ image, background, onBackgroundChange }: InspectorPr
 
       <section className="inspector__section">
         <div className="section-heading"><Scissors size={17} /><h2>Cutout</h2></div>
-        <button className="action-card" type="button" disabled={!image}>
-          <span><Sparkles size={18} /> Remove background</span>
-          <small>Local processing · coming next</small>
+        <button className="action-card" type="button" disabled={!canRemoveBackground} onClick={onRemoveBackground}>
+          <span><Sparkles size={18} /> {isProcessing ? "Removing background…" : "Remove background"}</span>
+          <small>
+            {isProcessing
+              ? "Local processing · this can take a few seconds"
+              : removal
+                ? `Done in ${removal.processingTimeMs} ms · local processing`
+                : "Local processing"}
+          </small>
         </button>
+
+        {removal && (
+          <fieldset className="field">
+            <legend>View</legend>
+            <div className="segmented-control">
+              {(["original", "cutout"] as const).map((option) => (
+                <button
+                  key={option}
+                  className={viewMode === option ? "is-active" : ""}
+                  type="button"
+                  onClick={() => onViewModeChange(option)}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        )}
+
         <fieldset className="field" disabled={!image}>
           <legend>Preview background</legend>
           <div className="segmented-control">
@@ -64,4 +106,3 @@ export function Inspector({ image, background, onBackgroundChange }: InspectorPr
     </aside>
   );
 }
-

@@ -9,4 +9,3 @@ pub struct ImageMetadata {
     pub format: String,
     pub file_size_bytes: u64,
 }
-

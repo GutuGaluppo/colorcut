@@ -31,4 +31,3 @@ pub struct HslColor {
     pub s: f32,
     pub l: f32,
 }
-

@@ -160,11 +160,15 @@
 .app-content {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-rows: minmax(0, 1fr);
   min-height: 0;
 }
 
 .workspace {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  place-items: center;
   min-width: 0;
   min-height: 0;
   padding: 22px;
@@ -230,6 +234,8 @@
 .image-stage {
   position: relative;
   display: grid;
+  max-width: 100%;
+  max-height: 100%;
   min-width: 0;
   min-height: 0;
   place-items: center;
@@ -255,17 +261,194 @@
 
 .image-stage img {
   display: block;
-  max-width: calc(100% - 56px);
-  max-height: calc(100% - 56px);
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
   object-fit: contain;
+  transition: transform 120ms ease, filter 260ms ease;
   filter: drop-shadow(0 12px 30px rgba(16, 24, 40, 0.12));
+}
+
+.image-stage--zoomed {
+  overflow: auto;
+}
+
+.image-stage--processing img {
+  filter: drop-shadow(0 12px 30px rgba(16, 24, 40, 0.12)) saturate(0.85) brightness(0.9);
+}
+
+.processing-mesh {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.processing-mesh__grid {
+  position: absolute;
+  inset: -28px;
+  background-image:
+    linear-gradient(rgba(40, 199, 232, 0.48) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(40, 199, 232, 0.48) 1px, transparent 1px);
+  background-size: 28px 28px;
+  animation: processing-mesh-fade 2.4s ease-in-out infinite;
+}
+
+@keyframes processing-mesh-fade {
+  0%, 100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+.processing-mesh__scanline {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    180deg,
+    transparent,
+    rgba(40, 199, 232, 0.9) 46%,
+    rgba(150, 230, 255, 1) 50%,
+    rgba(47, 140, 255, 0.9) 54%,
+    transparent
+  );
+  background-repeat: no-repeat;
+  background-size: 100% 36%;
+  background-position: 0 -36%;
+  mask-image: linear-gradient(rgba(0, 0, 0, 1) 2px, transparent 2px);
+  mask-size: 28px 28px;
+  mask-repeat: repeat;
+  -webkit-mask-image: linear-gradient(rgba(0, 0, 0, 1) 2px, transparent 2px);
+  -webkit-mask-size: 28px 28px;
+  -webkit-mask-repeat: repeat;
+  filter: drop-shadow(0 0 6px rgba(40, 199, 232, 0.9));
+  animation: processing-scanline 2.6s linear infinite;
+}
+
+@keyframes processing-scanline {
+  0% {
+    background-position: 0 -36%;
+  }
+  100% {
+    background-position: 0 136%;
+  }
+}
+
+.processing-mesh__corner {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border: 0 solid var(--cc-cyan);
+  filter: drop-shadow(0 0 6px rgba(40, 199, 232, 0.85));
+  animation: processing-mesh-fade 2.4s ease-in-out infinite;
+}
+
+.processing-mesh__corner--tl {
+  top: 16px;
+  left: 16px;
+  border-width: 2px 0 0 2px;
+  border-radius: 4px 0 0 0;
+}
+
+.processing-mesh__corner--tr {
+  top: 16px;
+  right: 16px;
+  border-width: 2px 2px 0 0;
+  border-radius: 0 4px 0 0;
+}
+
+.processing-mesh__corner--bl {
+  bottom: 16px;
+  left: 16px;
+  border-width: 0 0 2px 2px;
+  border-radius: 0 0 0 4px;
+}
+
+.processing-mesh__corner--br {
+  bottom: 16px;
+  right: 16px;
+  border-width: 0 2px 2px 0;
+  border-radius: 0 0 4px 0;
 }
 
 .image-stage__close {
   position: absolute;
-  z-index: 1;
+  z-index: 3;
   top: 14px;
   right: 14px;
+}
+
+.processing-overlay {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 16px;
+  color: var(--cc-text);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 6px 20px rgba(16, 24, 40, 0.14);
+  font-size: 13px;
+  font-weight: 600;
+  backdrop-filter: blur(6px);
+}
+
+.processing-overlay__spinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--cc-border-strong);
+  border-top-color: var(--cc-blue);
+  border-radius: 50%;
+  animation: processing-spin 800ms linear infinite;
+}
+
+@keyframes processing-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.zoom-toolbar {
+  position: absolute;
+  z-index: 1;
+  bottom: 14px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 3px 12px rgba(16, 24, 40, 0.11);
+  backdrop-filter: blur(6px);
+}
+
+.zoom-toolbar .icon-button {
+  width: 28px;
+  height: 28px;
+  box-shadow: none;
+}
+
+.zoom-toolbar__value {
+  min-width: 52px;
+  padding: 0 6px;
+  color: var(--cc-text-secondary);
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 650;
+  text-align: center;
+}
+
+.zoom-toolbar__value:hover {
+  color: var(--cc-text);
 }
 
 .inspector {

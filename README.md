@@ -8,6 +8,7 @@ Requirements: Node.js, pnpm, Rust, and the Tauri 2 platform prerequisites for ma
 
 ```bash
 pnpm install
+pnpm fetch-models   # downloads the background-removal ONNX model (~170 MB, not committed)
 pnpm tauri dev
 ```
 
@@ -28,12 +29,12 @@ cd src-tauri && cargo fmt --check && cargo test
 
 ## Current state
 
-- Functional React shell.
-- File-picker, drag/drop, and clipboard preview flow.
+- Functional React shell with fit/zoom preview.
+- File-picker, drag/drop, and clipboard import flow.
 - Zustand state and cleanup.
 - Typed Tauri adapter.
-- Rust command/service placeholders.
-- Background removal and production palette extraction are intentionally not implemented yet.
+- Background removal is implemented locally (`isnet-general-use` via `ort` + CoreML — see `docs/DECISIONS.md` ADR-005 and `docs/MODEL_NOTES.md`), with PNG export.
+- Palette extraction is still a placeholder.
 
 Read `IMPLEMENTATION.md` and `AGENTS.md` before continuing.
 

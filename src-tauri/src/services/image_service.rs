@@ -26,7 +26,8 @@ pub fn metadata(image_path: &str) -> Result<ImageMetadata, ImageServiceError> {
         return Err(ImageServiceError::NotAFile);
     }
 
-    let fs_metadata = fs::metadata(path).map_err(|error| ImageServiceError::Read(error.to_string()))?;
+    let fs_metadata =
+        fs::metadata(path).map_err(|error| ImageServiceError::Read(error.to_string()))?;
     if fs_metadata.len() > MAX_FILE_BYTES {
         return Err(ImageServiceError::FileTooLarge);
     }
@@ -59,4 +60,3 @@ pub fn metadata(image_path: &str) -> Result<ImageMetadata, ImageServiceError> {
         file_size_bytes: fs_metadata.len(),
     })
 }
-

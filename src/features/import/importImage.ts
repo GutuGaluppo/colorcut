@@ -46,6 +46,12 @@ export async function importImageFile(file: File): Promise<ImageAsset> {
   }
 }
 
+export async function readObjectUrlBytes(sourceUrl: string): Promise<Uint8Array> {
+  const response = await fetch(sourceUrl);
+  const buffer = await response.arrayBuffer();
+  return new Uint8Array(buffer);
+}
+
 export async function getClipboardImage(): Promise<File> {
   if (!navigator.clipboard?.read) {
     throw new ImageImportError("Clipboard image access is unavailable here.");

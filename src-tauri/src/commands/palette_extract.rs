@@ -8,4 +8,3 @@ pub async fn extract_palette(
 ) -> Result<PaletteResult, String> {
     Err("Palette extraction is not implemented in the starter scaffold.".to_owned())
 }
-

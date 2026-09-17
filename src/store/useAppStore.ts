@@ -7,6 +7,13 @@ import type {
   RemovalResult,
 } from "../types/domain";
 
+export const ZOOM_MIN = 0.25;
+export const ZOOM_MAX = 4;
+const ZOOM_STEP = 0.25;
+const ZOOM_DEFAULT = 1;
+
+export type ViewMode = "original" | "cutout";
+
 type AppState = {
   image: ImageAsset | null;
   removal: RemovalResult | null;
@@ -14,14 +21,26 @@ type AppState = {
   operationStatus: OperationStatus;
   message: string;
   previewBackground: PreviewBackground;
+  viewMode: ViewMode;
+  zoom: number;
   setImage: (image: ImageAsset) => void;
   setOperation: (status: OperationStatus, message?: string) => void;
   setPreviewBackground: (background: PreviewBackground) => void;
+  setRemoval: (removal: RemovalResult) => void;
+  setViewMode: (mode: ViewMode) => void;
+  setZoom: (zoom: number) => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetZoom: () => void;
   clearImage: () => void;
 };
 
 function revoke(url?: string) {
   if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
+}
+
+function clampZoom(zoom: number) {
+  return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(zoom * 100) / 100));
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -31,31 +50,42 @@ export const useAppStore = create<AppState>((set, get) => ({
   operationStatus: "idle",
   message: "Ready",
   previewBackground: "checker",
+  viewMode: "original",
+  zoom: ZOOM_DEFAULT,
 
   setImage: (image) => {
     revoke(get().image?.sourceUrl);
-    revoke(get().removal?.previewUrl);
     set({
       image,
       removal: null,
       palette: null,
       operationStatus: "success",
       message: "Image ready",
+      viewMode: "original",
+      zoom: ZOOM_DEFAULT,
     });
   },
 
   setOperation: (operationStatus, message = "") => set({ operationStatus, message }),
   setPreviewBackground: (previewBackground) => set({ previewBackground }),
+  setRemoval: (removal) =>
+    set({ removal, viewMode: "cutout", operationStatus: "success", message: "Background removed" }),
+  setViewMode: (viewMode) => set({ viewMode }),
+  setZoom: (zoom) => set({ zoom: clampZoom(zoom) }),
+  zoomIn: () => set((state) => ({ zoom: clampZoom(state.zoom + ZOOM_STEP) })),
+  zoomOut: () => set((state) => ({ zoom: clampZoom(state.zoom - ZOOM_STEP) })),
+  resetZoom: () => set({ zoom: ZOOM_DEFAULT }),
 
   clearImage: () => {
     revoke(get().image?.sourceUrl);
-    revoke(get().removal?.previewUrl);
     set({
       image: null,
       removal: null,
       palette: null,
       operationStatus: "idle",
       message: "Ready",
+      viewMode: "original",
+      zoom: ZOOM_DEFAULT,
     });
   },
 }));

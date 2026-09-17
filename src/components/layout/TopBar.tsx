@@ -3,11 +3,23 @@ import { BrandMark } from "../ui/BrandMark";
 
 type TopBarProps = {
   hasImage: boolean;
+  canRemoveBackground: boolean;
+  canExport: boolean;
   onOpen: () => void;
   onPaste: () => void;
+  onRemoveBackground: () => void;
+  onExport: () => void;
 };
 
-export function TopBar({ hasImage, onOpen, onPaste }: TopBarProps) {
+export function TopBar({
+  hasImage,
+  canRemoveBackground,
+  canExport,
+  onOpen,
+  onPaste,
+  onRemoveBackground,
+  onExport,
+}: TopBarProps) {
   return (
     <header className="topbar">
       <div className="product-lockup">
@@ -26,17 +38,16 @@ export function TopBar({ hasImage, onOpen, onPaste }: TopBarProps) {
           <ClipboardPaste size={17} /> Paste
         </button>
         <span className="topbar__divider" aria-hidden="true" />
-        <button className="button button--quiet" type="button" disabled={!hasImage}>
+        <button className="button button--quiet" type="button" disabled={!canRemoveBackground} onClick={onRemoveBackground}>
           <Scissors size={17} /> Remove background
         </button>
         <button className="button button--quiet" type="button" disabled={!hasImage}>
           <Palette size={17} /> Extract palette
         </button>
-        <button className="button button--primary" type="button" disabled={!hasImage}>
+        <button className="button button--primary" type="button" disabled={!canExport} onClick={onExport}>
           <Download size={17} /> Export
         </button>
       </nav>
     </header>
   );
 }
-
