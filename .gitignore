@@ -1,0 +1,12 @@
+node_modules/
+dist/
+target/
+src-tauri/target/
+.DS_Store
+*.log
+*.tsbuildinfo
+*.png
+*.webp
+!src-tauri/icons/*.png
+src-tauri/resources/models/*
+!src-tauri/resources/models/.gitkeep

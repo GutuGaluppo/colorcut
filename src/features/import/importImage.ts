@@ -1,0 +1,65 @@
+import type { ImageAsset } from "../../types/domain";
+
+const supportedTypes = new Set(["image/png", "image/jpeg", "image/webp"]);
+const maxInputBytes = 100 * 1024 * 1024;
+
+export class ImageImportError extends Error {}
+
+function readDimensions(sourceUrl: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+    image.onerror = () => reject(new ImageImportError("The image could not be decoded."));
+    image.src = sourceUrl;
+  });
+}
+
+export async function importImageFile(file: File): Promise<ImageAsset> {
+  if (!supportedTypes.has(file.type)) {
+    throw new ImageImportError("Choose a PNG, JPEG, or WebP image.");
+  }
+
+  if (file.size > maxInputBytes) {
+    throw new ImageImportError("Choose an image smaller than 100 MB.");
+  }
+
+  const sourceUrl = URL.createObjectURL(file);
+
+  try {
+    const { width, height } = await readDimensions(sourceUrl);
+    if (width === 0 || height === 0) {
+      throw new ImageImportError("The image has invalid dimensions.");
+    }
+
+    return {
+      id: crypto.randomUUID(),
+      sourceUrl,
+      fileName: file.name || "Clipboard image",
+      width,
+      height,
+      mimeType: file.type,
+      fileSizeBytes: file.size,
+    };
+  } catch (error) {
+    URL.revokeObjectURL(sourceUrl);
+    throw error;
+  }
+}
+
+export async function getClipboardImage(): Promise<File> {
+  if (!navigator.clipboard?.read) {
+    throw new ImageImportError("Clipboard image access is unavailable here.");
+  }
+
+  const clipboardItems = await navigator.clipboard.read();
+  for (const item of clipboardItems) {
+    const imageType = item.types.find((type) => supportedTypes.has(type));
+    if (imageType) {
+      const blob = await item.getType(imageType);
+      return new File([blob], "Clipboard image", { type: imageType });
+    }
+  }
+
+  throw new ImageImportError("The clipboard does not contain a supported image.");
+}
+
