@@ -10,9 +10,11 @@ src-tauri/target/
 *.png
 *.webp
 !src-tauri/icons/*.png
+!/colorcut_layered_leaf.png
 src-tauri/resources/models/*
 !src-tauri/resources/models/.gitkeep
 Images_QA/
 /original/
 /remove_bg_results/
 /remove_bg_results_v2/
+/color_palette_detector/

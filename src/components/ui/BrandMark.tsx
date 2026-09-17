@@ -1,10 +1,9 @@
-export function BrandMark() {
-  return (
-    <div className="brand-mark" aria-hidden="true">
-      <span className="brand-mark__layer brand-mark__layer--one" />
-      <span className="brand-mark__layer brand-mark__layer--two" />
-      <span className="brand-mark__layer brand-mark__layer--three" />
-    </div>
-  );
-}
+import layered_leaf from "../../../colorcut_layered_leaf.png";
 
+export function BrandMark() {
+	return (
+		<div className="brand-mark" aria-hidden="true">
+			<img src={layered_leaf} alt="ColorCut logo" width="100%" />
+		</div>
+	);
+}
