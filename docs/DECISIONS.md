@@ -35,3 +35,90 @@ Record accepted decisions here. Keep entries short and append-only.
 **Revisit if:** a lighter or higher-quality Apache/MIT model with a trustworthy ONNX export and reasonable CoreML compile time turns up, or if `ort`'s bundled ONNX Runtime binary becomes a packaging/licensing blocker (fall back to `tract`, pure-Rust/CPU-only, per the runtime comparison in `docs/MODEL_NOTES.md`). Also revisit if a future profiling pass shows `CPUAndGPU` latency is worse than acceptable — the fix then is a startup-time `is_available()`/timeout-guarded probe before opportunistically trying ANE, not reverting to an unconditional `All`.  
 **EXIF orientation fix (2026-09-17, found comparing real exports):** a phone photo (iPhone, portrait) came back from the cutout as landscape-oriented and at a different resolution than the source. Root cause: `image::load_from_memory` decodes the raw pixel buffer only and ignores the file's EXIF `Orientation` tag — phones commonly store the sensor's native (often landscape) pixel layout plus a tag saying how to rotate it for display, and every other consumer of the file (browsers, `sips`, Photos) applies that tag while the `image` crate does not unless told to. Fixed by decoding through `ImageReader::into_decoder` + `ImageDecoder::orientation()` + `DynamicImage::apply_orientation()` instead of the one-shot `load_from_memory` (see `decode_respecting_exif_orientation` in `background_removal_service.rs`). Verified by reprocessing the same 6 real photos (5 stock photos + 1 phone photo) end-to-end: all now preserve their source dimensions exactly, including the previously-broken phone photo (768×1024 in, 768×1024 out). The 5 stock photos were unaffected by the bug (no EXIF rotation tag) and their cutout quality was unaffected by the `ComputeUnits` change above.
 
+**Preprocessing hypotheses tested and ruled out for the plain-white-garment cutout gap (2026-09-18):** manual QA found part of a plain white crop top coming back ~18% transparent against a plain pink studio background (verified via alpha-channel histogram on the real photo, not just visually). Tested two plausible preprocessing fixes against that exact photo plus a spot-check of the other 6 diagnostic photos in `original/`, using the existing `diagnostic_reprocess_original_folder` test: (1) letterbox-resize into the 1024×1024 input instead of stretching to a square (avoids distorting subject proportions before inference), and (2) dropping the per-image min-max mask stretch in favor of a plain clamp. Neither changed the shirt region's near-zero-alpha share meaningfully (17.7% → 17.4%) or visibly in an alpha-composited-on-black comparison, and neither moved opacity coverage on the other photos beyond noise (<1pp). Both changes were reverted — no proven benefit, and (2) in particular would have second-guessed the min-max normalization this ADR already verified against the `rembg` reference implementation. Conclusion: this is very likely a genuine `isnet-general-use` limitation on low-texture, low-contrast garments (the model has much less to key on than skin/hair texture), not a preprocessing bug — a fix would mean benchmarking a different/better model per the "Revisit if" note above, not more pipeline tuning here.
+
+## ADR-006 — Comparison stays in the renderer; export encoding stays native
+
+**Status:** Accepted (2026-09-18)
+
+**Decision:** Slider and side-by-side comparison reuse the already-loaded original object URL and native cutout asset URL, with a clamped shared slider position in the Zustand store. Cutout PNG/WebP conversion and the 960×160 equal-segment palette PNG are encoded by Rust services. Native export services allow-list the extensions exposed by the UI instead of inferring arbitrary formats from a destination path.
+
+**Reason:** Comparison is presentation-only and does not justify another native image operation. Encoding belongs outside the renderer, preserves the existing frontend/native boundary, and extension validation keeps IPC behavior aligned with the visible save options.
+
+## ADR-007 — macOS 11.0 and Apple Silicon are the initial distribution baseline
+
+**Status:** Accepted (2026-09-18), approved by product owner
+
+**Decision:** Set `bundle.macOS.minimumSystemVersion` to `11.0` and publish the initial macOS artifacts for Apple Silicon (`arm64`).
+
+**Reason:** The release binary and CoreML path already require macOS 11.0, and Apple Silicon Macs began with macOS 11. Advertising 10.13 in `Info.plist` was therefore inaccurate rather than useful compatibility. A universal or Intel build remains a separate, explicitly tested distribution decision.
+
+## ADR-008 — Manual-QA blockers found before release: drag-and-drop and a CSP-blocked blob fetch
+
+**Status:** Accepted (2026-09-18)
+
+**Found by manual QA (`TESTE_MANUAL_RESULTS.md`):** drag-and-drop import silently did nothing, and both Remove Background and Extract Palette failed with a generic webview "Load failed" error before any other checklist item could be exercised.
+
+**Decision 1 — drag-and-drop:** set `app.windows[0].dragDropEnabled` to `false` in `tauri.conf.json`. Tauri v2 intercepts OS-level file drops before they reach the DOM unless this is disabled; the app's `onDrop`/`onDragEnter` handlers in `App.tsx` were already correct and simply never fired.
+
+**Decision 2 (superseded, kept anyway) — IPC image transfer:** stop sending image bytes as a JSON `Vec<u8>` command argument. `remove_background` and `extract_palette` (Original mode) both serialized the full imported image as `Array.from(bytes)`, which Tauri's IPC bridge JSON-stringifies into one decimal number per byte — a real, wasteful inflation of a several-megabyte photo into tens of megabytes of text on every call. Added `cache_source_image`, a command that takes the invoke call's raw body (`tauri::ipc::Request` / `InvokeBody::Raw`, sent by calling `invoke("cache_source_image", bytes)` with the `Uint8Array` as the whole argument instead of wrapped in an object) and writes it to a new `originals_dir` cache directory, returning a path. `remove_background` and `extract_palette` now take that path and read the file server-side.
+
+**This was not the cause of the "Load failed" error.** Installing the rebuilt app and reproducing manually still failed identically after decision 2 shipped — including on a 787 KB test image, far too small for JSON inflation to plausibly break delivery. Kept decision 2 anyway because it's a real, verified improvement (smaller IPC payloads, no redundant original-bytes transfer in Subject mode), but it was solving a latent problem, not the reported one.
+
+**Decision 3 — the actual cause, found via WebView devtools:** temporarily added the `devtools` Cargo feature to `tauri` (release builds don't get devtools without it; `pnpm tauri dev` does, which is why the bug never reproduced there) and inspected the Console tab. It showed: `Refused to connect to blob:tauri://localhost/<id> because it does not appear in the connect-src directive of the Content Security Policy.` Both `remove_background` and `extract_palette` (Original mode) start by calling `fetch()` on the imported image's `blob:` object URL to read its bytes (`readObjectUrlBytes`). `app.security.csp`'s `img-src` already allowed `blob:` (so the image previews fine) but `connect-src` did not, so the `fetch()` itself was blocked — WebKit surfaces a CSP-blocked fetch as a rejected promise with the message `Load failed`, matching the symptom exactly. Fixed by adding `blob:` to `connect-src`. Tauri does not inject/enforce this CSP for the `pnpm tauri dev` server, only for the built app, which is why manual QA only ever caught this against the packaged `.app`. Reverted the `devtools` feature after confirming the fix; re-add it (temporarily) if a similar release-only bug needs live console inspection again.
+
+**Revisit if:** a future command needs to send large binary data alongside multiple structured fields — decision 2's raw-body path only carries one opaque payload, so params like `count`/`source` still have to travel as normal JSON args on a separate call, as done here. Also revisit `connect-src` if a future fetch target (e.g. a different custom protocol) gets blocked the same way — check the CSP first, not the IPC transport, for any webview-only ("works in dev, fails packaged") failure.
+
+## ADR-009 — Weight median-cut bucket splits by range, not population alone
+
+**Status:** Accepted (2026-09-18)
+
+**Found by manual QA** (real photo in `QA_MANULA_RESULT/`, exported `palette.css`): a portrait against a plain pink studio background produced 14 of 16 palette colors as near-identical pale pink/mauve shades, capturing only 2 real subject tones and missing skin, hair, eye, and clothing variation almost entirely.
+
+**Root cause:** `median_cut::quantize`'s split loop chose which bucket to split next purely by pixel count (`max_by_key(|bucket| bucket.pixels.len())`). A large, low-variance background (most of the frame, narrow color range) has far more pixels than the whole subject combined, so the loop kept re-slicing the background into ever-finer near-duplicate shades long before the subject's much smaller, but far more varied, regions ever got split into their own clusters.
+
+**Decision:** weight the split choice by `population * channel_range` instead of population alone, so a bucket's real color variety competes fairly against a large but visually flat region. Verified against the actual QA photo (16-color extraction): background-only shades dropped from 14/16 to 6/16, with the freed slots going to genuinely distinct skin/hair tones (previously only 2 non-background colors were captured; now 10). Added `median_cut::tests::a_large_low_variance_region_does_not_crowd_out_a_smaller_colorful_subject`, tuned to realistic proportions (16 target colors, subject ~20% of pixels across 4 hues), asserting every subject hue lands in its own cluster.
+
+**Considered and rejected:** also adding a minimum-range-to-split floor (stop splitting a bucket once its range drops below a fixed threshold, as a stand-in for the "merge near-duplicate clusters" rule IMPLEMENTATION.md §8 still defers). Tuning it high enough to meaningfully shrink the background's slot share broke `produces_exactly_the_requested_count_when_enough_variety_exists` (colors 32 apart per channel are legitimately distinct, not near-duplicates) and did not actually fix the synthetic regression test it was meant for. Reverted; the population*range weighting alone was enough to pass all tests and produce a clear, verified improvement.
+
+**Remaining gap:** eye color and denim (both a small fraction of pixels even within the subject) still didn't get their own cluster in the QA photo. Closing that fully likely needs the perceptual-space refinement IMPLEMENTATION.md §8 already flags as a later step (k-means or similar), not another median-cut tuning pass — revisit there if narrower coverage keeps coming up in QA.
+
+## ADR-010 — Comparison slider clips both panes instead of stacking cutout over the original
+
+**Status:** Accepted (2026-09-18)
+
+**Found by manual QA:** dragging the Slider handle moved correctly, but the "after" side never visibly showed the cutout — the workspace looked identical to the plain original at every position.
+
+**Root cause:** `CompareSlider` rendered the original photo as a full-size, always-visible base layer, then placed the cutout PNG on top of it clipped to the revealed portion. Compositing a cutout's alpha channel over that *same* original photo mathematically reconstructs the original exactly, pixel for pixel, everywhere the mask marks background — an RGBA image's transparent pixels just let the identical-colored photo directly beneath them show through unchanged. So the reveal could never look different from the original, regardless of mask quality; this wasn't a broken asset load (confirmed via devtools: the `asset://` cutout `src` and `clip-path` were both correct in the DOM) or a CSS positioning bug.
+
+**Decision:** clip both the original and the cutout panes to complementary halves (`inset(0 0 0 X%)` / `inset(0 100-X% 0 0)`) instead of stacking one over the other. With the opaque original removed from underneath, the cutout's transparent pixels now show the shared `.image-stage` checker/white/black backdrop — the same compositing the plain Cutout view already uses — so the slider reveals an actual visual difference.
+
+**Reason:** any design that composites a foreground extraction over its own source image is a no-op by construction; the backdrop behind the cutout must be independent of the original for a before/after comparison to show anything.
+
+**Follow-up bug from this fix:** dragging the handle sometimes flashed a translucent blue tint across the whole image. Neither `.compare-slider` nor its `<img>`s set `user-select`/`-webkit-user-drag`, so click-dragging over the now-two stacked images could trigger the browser's native text/image selection or drag-ghost, painted in the OS selection-highlight blue. Fixed with `user-select: none` on `.compare-slider`, `-webkit-user-drag: none` / `-webkit-touch-callout: none` on `.compare-slider__layer`, and `draggable={false}` on both `<img>`s.
+
+## ADR-011 — Clipboard paste only reads image data, not a Finder-copied file reference
+
+**Status:** Accepted (2026-09-18)
+
+**Found by manual QA:** clicking "Paste" after copying an image file in Finder (Cmd+C on its icon) always failed with "The clipboard does not contain a supported image."
+
+**Investigated via devtools:** logged `clipboardItems.map(item => item.types)` inside the real `Paste` click (not from the console directly — calling `navigator.clipboard.read()` outside a real user-gesture event handler throws its own unrelated `NotAllowedError` in WebKit, which briefly looked like the bug but was an artifact of testing from the console). The real result: `navigator.clipboard.read()` resolves with exactly one `ClipboardItem`, but its `types` array is empty (`[]]`).
+
+**Root cause:** copying a *file* in Finder puts a file reference on the system pasteboard using a macOS-specific UTI, not image bytes. WebKit's Web Clipboard API doesn't map that reference to any web-standard MIME type, so it exposes the item with no readable `types` at all — there is nothing our code (or any web-standard clipboard read) could have matched against. Copying actual image *data* (Preview's Copy, a browser's Copy Image, a screenshot) does put a real `image/png`-typed blob on the pasteboard and already works.
+
+**Decision:** treat this as a real but out-of-scope-for-now platform limitation, not a code bug to route around. Reading a Finder file reference from the pasteboard would require native `NSPasteboard` access (e.g. a Tauri plugin reading file URLs), which is a bigger, separate feature — not a fix to the existing Web Clipboard-based `getClipboardImage`. Improved the error message instead, since "does not contain a supported image" reads like the clipboard was empty rather than explaining that a copied *file* specifically doesn't work here: it now names Finder-file-copy as the unsupported case and points at Open/drag-and-drop as the working alternative for files already on disk.
+
+**Revisit if:** "paste a copied file" becomes a requested feature — that needs native pasteboard reading, not a Web Clipboard API change, and is a product-scope decision (new native capability), not a quick fix.
+
+## ADR-012 — `pnpm tauri build`'s DMG step is flaky under load; not our code
+
+**Status:** Accepted (2026-09-18)
+
+**Reported:** `pnpm tauri build` intermittently failed at "Running bundle_dmg.sh" (`.app` bundle always succeeded first; only the `.dmg` step failed). Retrying the same build with no changes often succeeded.
+
+**Investigated:** `bundle_dmg.sh` is a vendored copy of the third-party `create-dmg` script (regenerated into `target/release/bundle/dmg/` on every build, not a file we own or can durably patch there). It creates a temporary read-write DMG, mounts it, runs an AppleScript to arrange the Finder window/icons, then detaches and compresses it. The script's own comments acknowledge occasional `osascript` failures with error **-1728 ("Can't get disk")** when Finder hasn't fully caught up to the new mount, and paper over it with a fixed 2-second `sleep`. Confirmed a failure had happened during this session: found an orphaned read-write DMG (`rw.25970.ColorCut_0.1.0_aarch64.dmg`) still mounted at `/Volumes/dmg.7EX3TX` from an earlier failed run. Reading the script: when the AppleScript step fails, it calls its own unmount-with-retry helper (3 attempts, exponential backoff) before exiting — if Finder is still holding the volume open (e.g. it got as far as opening the window before the script-level failure), those retries can also fail, leaving exactly this kind of stale mount behind. Cleaned it up (`hdiutil detach`) along with a second orphaned temp DMG found alongside it; neither was blocking new builds (each run uses a PID-based unique temp filename and `-mountrandom`), but they were untidy leftovers.
+
+**Decision:** don't try to fix or vendor-patch `bundle_dmg.sh` — it's regenerated by the `tauri-bundler` crate on every build, so any local edit would be silently overwritten. Treat this as expected, occasional flakiness of a third-party Finder-automation step, most likely to show up when the machine is busy (several back-to-back builds, other apps/Spotlight competing for Finder's attention — as was the case during this session's rapid rebuild-and-reinstall QA loop). Mitigation is just to retry the build; the `.app` itself is unaffected and `scripts/verify-release.sh` already warns-and-continues when no DMG is present rather than hard-failing.
+
+**Revisit if:** the DMG step starts failing consistently (not intermittently) — that would point at a real environment problem (disk space, `create-dmg`/Xcode CLT version mismatch, System Settings > Privacy blocking Finder scripting) rather than this known timing race.

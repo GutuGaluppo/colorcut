@@ -1,10 +1,12 @@
-# ColorCut starter
+# ColorCut
 
-Initial Tauri + React + TypeScript scaffold for **ColorCut**, a local-first palette and cutout utility.
+A focused, local-first macOS utility for background removal and palette extraction.
 
-## Start
+All image processing runs locally. ColorCut has no account, cloud upload, telemetry, or runtime network requirement.
 
-Requirements: Node.js, pnpm, Rust, and the Tauri 2 platform prerequisites for macOS.
+## Development
+
+Requirements: macOS 11.0 or newer, Node.js, pnpm, Rust, and the Tauri 2 platform prerequisites.
 
 ```bash
 pnpm install
@@ -24,17 +26,39 @@ pnpm dev
 pnpm typecheck
 pnpm test
 pnpm build
-cd src-tauri && cargo fmt --check && cargo test
+cd src-tauri
+cargo fmt --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test
 ```
 
-## Current state
+The CoreML-backed test needs normal access to macOS temporary directories. If it fails only with a temporary-directory permission error inside a sandbox, rerun `cargo test` in a regular terminal.
 
-- Functional React shell with fit/zoom preview.
-- File-picker, drag/drop, and clipboard import flow.
-- Zustand state and cleanup.
-- Typed Tauri adapter.
-- Background removal is implemented locally (`isnet-general-use` via `ort` + CoreML — see `docs/DECISIONS.md` ADR-005 and `docs/MODEL_NOTES.md`), with PNG export.
-- Palette extraction is still a placeholder.
+## Package for macOS
 
-Read `IMPLEMENTATION.md` and `AGENTS.md` before continuing.
+Fetch the pinned model before packaging, then build and verify the release artifacts:
 
+```bash
+pnpm fetch-models
+pnpm tauri build
+./scripts/verify-release.sh
+```
+
+Artifacts are written to:
+
+- `src-tauri/target/release/bundle/macos/ColorCut.app`
+- `src-tauri/target/release/bundle/dmg/ColorCut_<version>_aarch64.dmg`
+
+Local builds are unsigned unless an approved Apple signing identity and notarization credentials are configured. See [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) before distributing a build.
+
+## Implemented
+
+- PNG/JPEG/WebP import through picker, drag-and-drop, and clipboard.
+- Local background removal using `isnet-general-use`, ONNX Runtime, and CoreML.
+- Original/cutout preview, comparison slider, side-by-side view, backgrounds, and zoom.
+- Original/subject median-cut palettes with 4/6/8/12/16 colors.
+- HEX, RGB, HSL, OKLCH, percentages, clipboard copy, and JSON/CSS/TXT/PNG-strip exports.
+- Transparent cutout export in PNG and WebP.
+- Typed frontend/native boundary, accessible states, tests, and macOS bundle configuration.
+
+Architecture and product constraints live in [IMPLEMENTATION.md](IMPLEMENTATION.md), [AGENTS.md](AGENTS.md), and [docs/DECISIONS.md](docs/DECISIONS.md). Model evaluation and licensing notes live in [docs/MODEL_NOTES.md](docs/MODEL_NOTES.md).

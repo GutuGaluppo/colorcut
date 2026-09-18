@@ -93,11 +93,22 @@ describe("useAppStore", () => {
   });
 
   it("resets the view mode to original when a new image is loaded", () => {
+    useAppStore.setState({ sliderPosition: 20 });
     useAppStore.getState().setImage(makeAsset());
     useAppStore.getState().setRemoval({ cutoutPath: "/tmp/cutout.png", processingTimeMs: 250 });
+    useAppStore.getState().setSliderPosition(75);
     useAppStore.getState().setImage(makeAsset({ sourceUrl: "blob:two" }));
 
     expect(useAppStore.getState().viewMode).toBe("original");
     expect(useAppStore.getState().removal).toBeNull();
+    expect(useAppStore.getState().sliderPosition).toBe(50);
+  });
+
+  it("clamps the comparison slider position", () => {
+    useAppStore.getState().setSliderPosition(-10);
+    expect(useAppStore.getState().sliderPosition).toBe(0);
+
+    useAppStore.getState().setSliderPosition(125);
+    expect(useAppStore.getState().sliderPosition).toBe(100);
   });
 });

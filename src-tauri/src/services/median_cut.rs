@@ -56,14 +56,20 @@ pub fn quantize(pixels: Vec<[u8; 3]>, target_count: usize) -> Vec<Cluster> {
         if buckets.len() >= target_count {
             break;
         }
+        // Weight by population * color range, not population alone: a large, nearly
+        // uniform-color region (e.g. a plain studio background) has far more pixels
+        // than a small but colorful subject, and splitting by population alone keeps
+        // re-slicing that flat region into near-duplicate shades while the subject's
+        // skin/hair/eye/clothing colors never get their own bucket.
         let split_index = buckets
             .iter()
             .enumerate()
-            .filter(|(_, bucket)| {
-                bucket.pixels.len() > 1
-                    && channel_range(&bucket.pixels, widest_channel(&bucket.pixels)) > 0
+            .filter_map(|(index, bucket)| {
+                let range = channel_range(&bucket.pixels, widest_channel(&bucket.pixels));
+                (bucket.pixels.len() > 1 && range > 0)
+                    .then_some((index, bucket.pixels.len() * usize::from(range)))
             })
-            .max_by_key(|(_, bucket)| bucket.pixels.len())
+            .max_by_key(|&(_, weight)| weight)
             .map(|(index, _)| index);
 
         let Some(index) = split_index else { break };
@@ -115,6 +121,58 @@ mod tests {
         }
         let clusters = quantize(pixels, 8);
         assert_eq!(clusters.len(), 8);
+    }
+
+    #[test]
+    fn a_large_low_variance_region_does_not_crowd_out_a_smaller_colorful_subject() {
+        // Mimics a studio-background photo: ~87% of pixels are a near-uniform pink
+        // wall (small channel range), the rest are a handful of very different
+        // subject colors (skin, hair, eyes, denim) with far fewer pixels each.
+        let mut pixels = Vec::new();
+        for i in 0..800u32 {
+            let jitter = (i % 5) as u8;
+            pixels.push([210 + jitter, 190 + jitter, 200 + jitter]);
+        }
+        let subject_colors: [[u8; 3]; 4] = [
+            [235, 195, 170], // skin
+            [90, 60, 40],    // hair
+            [80, 140, 160],  // eyes
+            [120, 130, 150], // denim
+        ];
+        for color in subject_colors {
+            for _ in 0..50 {
+                pixels.push(color);
+            }
+        }
+
+        let clusters = quantize(pixels, 16);
+
+        // Every distinct subject color must land in its own cluster (closest by
+        // Euclidean distance), not get merged away into a background-dominated bucket.
+        for subject_color in subject_colors {
+            let nearest = clusters
+                .iter()
+                .min_by_key(|cluster| {
+                    cluster
+                        .color
+                        .iter()
+                        .zip(subject_color.iter())
+                        .map(|(a, b)| (i32::from(*a) - i32::from(*b)).pow(2))
+                        .sum::<i32>()
+                })
+                .expect("quantize returned at least one cluster");
+            let distance_sq: i32 = nearest
+                .color
+                .iter()
+                .zip(subject_color.iter())
+                .map(|(a, b)| (i32::from(*a) - i32::from(*b)).pow(2))
+                .sum();
+            assert!(
+                distance_sq < 400,
+                "no cluster close to subject color {subject_color:?}; closest was {:?} (dist_sq={distance_sq})",
+                nearest.color
+            );
+        }
     }
 
     #[test]

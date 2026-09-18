@@ -66,6 +66,14 @@ export async function getClipboardImage(): Promise<File> {
     }
   }
 
-  throw new ImageImportError("The clipboard does not contain a supported image.");
+  // A file copied in Finder (Cmd+C on its icon) puts a file reference on the
+  // pasteboard, not image bytes, and the platform doesn't expose that
+  // reference as a readable type here — so "no supported image" also covers
+  // that case, not just an empty or non-image clipboard. Copying the image
+  // data itself (Preview's Copy, a browser's Copy Image, a screenshot) works;
+  // for a file on disk, use Open or drag it in instead.
+  throw new ImageImportError(
+    "The clipboard doesn't contain image data ColorCut can read. Copying a file in Finder doesn't work here — copy the image itself (Preview, a browser, a screenshot), or use Open / drag the file in instead.",
+  );
 }
 

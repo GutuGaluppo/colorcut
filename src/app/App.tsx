@@ -5,19 +5,34 @@ import { Inspector } from "../components/layout/Inspector";
 import { StatusBar } from "../components/layout/StatusBar";
 import { TopBar } from "../components/layout/TopBar";
 import { ImageWorkspace } from "../components/preview/ImageWorkspace";
+import { Toast } from "../components/ui/Toast";
 import { getClipboardImage, importImageFile, readObjectUrlBytes } from "../features/import/importImage";
 import { formatPalette, type PaletteExportFormat } from "../features/palette/exportPalette";
-import { cutoutPreviewUrl, exportCutout, extractPalette, removeBackground, writeTextFile } from "../lib/tauri/commands";
+import {
+  cacheSourceImage,
+  cutoutPreviewUrl,
+  exportCutout,
+  exportPaletteImage,
+  extractPalette,
+  removeBackground,
+  writeTextFile,
+} from "../lib/tauri/commands";
 import { useAppStore } from "../store/useAppStore";
+
+function fileNameOf(path: string) {
+  return path.split(/[/\\]/).pop() ?? path;
+}
 
 export function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragDepth = useRef(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [toast, setToast] = useState<{ tone: "success" | "error"; message: string } | null>(null);
   const {
     image,
     removal,
     viewMode,
+    sliderPosition,
     palette,
     paletteSource,
     paletteCount,
@@ -30,6 +45,7 @@ export function App() {
     setPreviewBackground,
     setRemoval,
     setViewMode,
+    setSliderPosition,
     setPalette,
     setPaletteSource,
     setPaletteCount,
@@ -40,6 +56,11 @@ export function App() {
   } = useAppStore();
 
   useEffect(() => () => useAppStore.getState().clearImage(), []);
+
+  useEffect(() => {
+    const shouldNotify = operationStatus === "error" || (operationStatus === "success" && message.startsWith("Exported "));
+    setToast(shouldNotify ? { tone: operationStatus as "success" | "error", message } : null);
+  }, [message, operationStatus]);
 
   async function loadFile(file?: File) {
     if (!file) return;
@@ -72,7 +93,8 @@ export function App() {
     setOperation("processing", "Removing background…");
     try {
       const bytes = await readObjectUrlBytes(image.sourceUrl);
-      setRemoval(await removeBackground(bytes));
+      const sourcePath = await cacheSourceImage(bytes);
+      setRemoval(await removeBackground(sourcePath));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Background removal failed.";
       setOperation("error", message);
@@ -85,11 +107,14 @@ export function App() {
       const suggestedName = `${image.fileName.replace(/\.[^./]+$/, "")}-cutout.png`;
       const destination = await save({
         defaultPath: suggestedName,
-        filters: [{ name: "PNG image", extensions: ["png"] }],
+        filters: [
+          { name: "PNG image", extensions: ["png"] },
+          { name: "WebP image", extensions: ["webp"] },
+        ],
       });
       if (!destination) return;
       await exportCutout(removal.cutoutPath, destination);
-      setOperation("success", "Cutout exported");
+      setOperation("success", `Exported ${fileNameOf(destination)}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Export failed.";
       setOperation("error", message);
@@ -101,9 +126,12 @@ export function App() {
     if (paletteSource === "subject" && !removal) return;
     setOperation("processing", "Extracting palette…");
     try {
-      const bytes = await readObjectUrlBytes(image.sourceUrl);
       const cutoutPath = paletteSource === "subject" ? removal?.cutoutPath : undefined;
-      setPalette(await extractPalette(bytes, paletteSource, paletteCount, cutoutPath));
+      const sourcePath =
+        paletteSource === "original"
+          ? await cacheSourceImage(await readObjectUrlBytes(image.sourceUrl))
+          : undefined;
+      setPalette(await extractPalette(paletteSource, paletteCount, sourcePath, cutoutPath));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Palette extraction failed.";
       setOperation("error", message);
@@ -119,7 +147,26 @@ export function App() {
       });
       if (!destination) return;
       await writeTextFile(formatPalette(palette, format), destination);
-      setOperation("success", "Palette exported");
+      setOperation("success", `Exported ${fileNameOf(destination)}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Export failed.";
+      setOperation("error", message);
+    }
+  }
+
+  async function handleExportPaletteImage() {
+    if (!palette) return;
+    try {
+      const destination = await save({
+        defaultPath: "palette.png",
+        filters: [{ name: "PNG image", extensions: ["png"] }],
+      });
+      if (!destination) return;
+      await exportPaletteImage(
+        palette.colors.map((color) => color.rgb),
+        destination,
+      );
+      setOperation("success", `Exported ${fileNameOf(destination)}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Export failed.";
       setOperation("error", message);
@@ -152,7 +199,7 @@ export function App() {
   const canRemoveBackground = Boolean(image) && !isProcessing;
   const canExport = Boolean(removal) && !isProcessing;
   const canExtractPalette = Boolean(image) && !isProcessing && (paletteSource === "original" || Boolean(removal));
-  const showCutout = viewMode === "cutout" && Boolean(removal);
+  const cutoutSrc = removal ? cutoutPreviewUrl(removal.cutoutPath) : undefined;
 
   return (
     <div className="app-shell">
@@ -177,8 +224,10 @@ export function App() {
       <div className="app-content">
         <ImageWorkspace
           image={image}
-          previewSrc={showCutout && removal ? cutoutPreviewUrl(removal.cutoutPath) : undefined}
-          previewAlt={showCutout ? `Cutout of ${image?.fileName}` : undefined}
+          cutoutSrc={cutoutSrc}
+          viewMode={viewMode}
+          sliderPosition={sliderPosition}
+          onSliderPositionChange={setSliderPosition}
           background={previewBackground}
           zoom={zoom}
           isDragging={isDragging}
@@ -212,8 +261,10 @@ export function App() {
           onPaletteCountChange={setPaletteCount}
           onExtractPalette={() => void handleExtractPalette()}
           onExportPalette={(format) => void handleExportPalette(format)}
+          onExportPaletteImage={() => void handleExportPaletteImage()}
         />
       </div>
+      {toast && <Toast tone={toast.tone} message={toast.message} onDismiss={() => setToast(null)} />}
       <StatusBar image={image} status={operationStatus} message={message} />
     </div>
   );

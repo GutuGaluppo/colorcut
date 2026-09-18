@@ -1,4 +1,7 @@
-use std::{fs, path::Path};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 use image::ImageReader;
 use thiserror::Error;
@@ -18,6 +21,38 @@ pub enum ImageServiceError {
     DimensionsTooLarge,
     #[error("The image could not be read: {0}")]
     Read(String),
+    #[error("The image could not be cached: {0}")]
+    Cache(String),
+    #[error("The image could not be found. Try importing it again.")]
+    CacheMissing,
+}
+
+/// Persists renderer-supplied bytes (imported via file picker, drag-and-drop, or
+/// clipboard, none of which carry a native path) to `destination_dir` so later
+/// commands can take a path instead of resending the whole image over IPC.
+pub fn cache_source_bytes(
+    bytes: &[u8],
+    destination_dir: &Path,
+) -> Result<PathBuf, ImageServiceError> {
+    fs::create_dir_all(destination_dir)
+        .map_err(|error| ImageServiceError::Cache(error.to_string()))?;
+    let path = destination_dir.join(format!("source-{}.bin", unique_suffix()));
+    fs::write(&path, bytes).map_err(|error| ImageServiceError::Cache(error.to_string()))?;
+    Ok(path)
+}
+
+/// Reads back bytes written by [`cache_source_bytes`].
+pub fn read_cached_bytes(path: &str) -> Result<Vec<u8>, ImageServiceError> {
+    fs::read(path).map_err(|_| ImageServiceError::CacheMissing)
+}
+
+fn unique_suffix() -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
+    format!("{nanos:x}")
 }
 
 pub fn metadata(image_path: &str) -> Result<ImageMetadata, ImageServiceError> {

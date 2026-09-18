@@ -7,6 +7,12 @@ import { PaletteResults } from "../palette/PaletteResults";
 
 const PALETTE_COUNTS: PaletteCount[] = [4, 6, 8, 12, 16];
 const PALETTE_EXPORT_FORMATS: PaletteExportFormat[] = ["json", "css", "txt"];
+const VIEW_MODES: { value: ViewMode; label: string }[] = [
+  { value: "original", label: "Original" },
+  { value: "cutout", label: "Cutout" },
+  { value: "slider", label: "Slider" },
+  { value: "side-by-side", label: "Side by side" },
+];
 
 type InspectorProps = {
   image: ImageAsset | null;
@@ -26,6 +32,7 @@ type InspectorProps = {
   onPaletteCountChange: (count: PaletteCount) => void;
   onExtractPalette: () => void;
   onExportPalette: (format: PaletteExportFormat) => void;
+  onExportPaletteImage: () => void;
 };
 
 function formatBytes(bytes: number) {
@@ -51,6 +58,7 @@ export function Inspector({
   onPaletteCountChange,
   onExtractPalette,
   onExportPalette,
+  onExportPaletteImage,
 }: InspectorProps) {
   return (
     <aside className="inspector" aria-label="Image inspector">
@@ -83,15 +91,16 @@ export function Inspector({
         {removal && (
           <fieldset className="field">
             <legend>View</legend>
-            <div className="segmented-control">
-              {(["original", "cutout"] as const).map((option) => (
+            <div className="segmented-control segmented-control--wrap" role="group" aria-label="Preview mode">
+              {VIEW_MODES.map((mode) => (
                 <button
-                  key={option}
-                  className={viewMode === option ? "is-active" : ""}
+                  key={mode.value}
+                  className={viewMode === mode.value ? "is-active" : ""}
                   type="button"
-                  onClick={() => onViewModeChange(option)}
+                  aria-pressed={viewMode === mode.value}
+                  onClick={() => onViewModeChange(mode.value)}
                 >
-                  {option}
+                  {mode.label}
                 </button>
               ))}
             </div>
@@ -100,12 +109,13 @@ export function Inspector({
 
         <fieldset className="field" disabled={!image}>
           <legend>Preview background</legend>
-          <div className="segmented-control">
+          <div className="segmented-control" role="group" aria-label="Preview background options">
             {(["checker", "white", "black"] as const).map((option) => (
               <button
                 key={option}
                 className={background === option ? "is-active" : ""}
                 type="button"
+                aria-pressed={background === option}
                 onClick={() => onBackgroundChange(option)}
               >
                 {option}
@@ -158,11 +168,20 @@ export function Inspector({
 
         {palette && (
           <div className="palette-export-row" role="group" aria-label="Export palette">
+            <button
+              type="button"
+              className="button button--quiet palette-export-row__button"
+              disabled={isProcessing}
+              onClick={onExportPaletteImage}
+            >
+              PNG
+            </button>
             {PALETTE_EXPORT_FORMATS.map((format) => (
               <button
                 key={format}
                 type="button"
                 className="button button--quiet palette-export-row__button"
+                disabled={isProcessing}
                 onClick={() => onExportPalette(format)}
               >
                 {format.toUpperCase()}

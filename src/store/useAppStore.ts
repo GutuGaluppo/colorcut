@@ -14,7 +14,7 @@ export const ZOOM_MAX = 4;
 const ZOOM_STEP = 0.25;
 const ZOOM_DEFAULT = 1;
 
-export type ViewMode = "original" | "cutout";
+export type ViewMode = "original" | "cutout" | "slider" | "side-by-side";
 
 type AppState = {
   image: ImageAsset | null;
@@ -26,12 +26,14 @@ type AppState = {
   message: string;
   previewBackground: PreviewBackground;
   viewMode: ViewMode;
+  sliderPosition: number;
   zoom: number;
   setImage: (image: ImageAsset) => void;
   setOperation: (status: OperationStatus, message?: string) => void;
   setPreviewBackground: (background: PreviewBackground) => void;
   setRemoval: (removal: RemovalResult) => void;
   setViewMode: (mode: ViewMode) => void;
+  setSliderPosition: (position: number) => void;
   setPalette: (palette: PaletteResult) => void;
   setPaletteSource: (source: PaletteSource) => void;
   setPaletteCount: (count: PaletteCount) => void;
@@ -60,6 +62,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   message: "Ready",
   previewBackground: "checker",
   viewMode: "original",
+  sliderPosition: 50,
   zoom: ZOOM_DEFAULT,
 
   setImage: (image) => {
@@ -71,6 +74,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       operationStatus: "success",
       message: "Image ready",
       viewMode: "original",
+      sliderPosition: 50,
       zoom: ZOOM_DEFAULT,
     });
   },
@@ -80,6 +84,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setRemoval: (removal) =>
     set({ removal, viewMode: "cutout", operationStatus: "success", message: "Background removed" }),
   setViewMode: (viewMode) => set({ viewMode }),
+  setSliderPosition: (position) => set({ sliderPosition: Math.min(100, Math.max(0, position)) }),
   setPalette: (palette) => set({ palette, operationStatus: "success", message: "Palette extracted" }),
   setPaletteSource: (paletteSource) => set({ paletteSource }),
   setPaletteCount: (paletteCount) => set({ paletteCount }),
@@ -97,6 +102,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       operationStatus: "idle",
       message: "Ready",
       viewMode: "original",
+      sliderPosition: 50,
       zoom: ZOOM_DEFAULT,
     });
   },

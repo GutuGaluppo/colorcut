@@ -2,12 +2,16 @@ import { ImagePlus, Minus, Plus, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { DragEvent } from "react";
 import type { ImageAsset, PreviewBackground } from "../../types/domain";
+import type { ViewMode } from "../../store/useAppStore";
 import { ZOOM_MAX, ZOOM_MIN } from "../../store/useAppStore";
+import { CompareSlider } from "./CompareSlider";
 
 type ImageWorkspaceProps = {
   image: ImageAsset | null;
-  previewSrc?: string;
-  previewAlt?: string;
+  cutoutSrc?: string;
+  viewMode: ViewMode;
+  sliderPosition: number;
+  onSliderPositionChange: (position: number) => void;
   background: PreviewBackground;
   zoom: number;
   isDragging: boolean;
@@ -31,8 +35,18 @@ type ImageWorkspaceProps = {
  * stage staying blank/checkered with a hard edge. Computing the fitted pixel
  * size in JS and setting it as an explicit width/height sidesteps that bug
  * entirely: no aspect-ratio recalculation for the engine to get wrong.
+ *
+ * `columns` lets side-by-side mode fit each pane against half the available
+ * width instead of the whole thing.
  */
-function useContainSize(container: React.RefObject<HTMLElement | null>, naturalWidth?: number, naturalHeight?: number) {
+function useContainSize(
+  container: React.RefObject<HTMLElement | null>,
+  naturalWidth?: number,
+  naturalHeight?: number,
+  columns = 1,
+  columnGap = 0,
+  heightOffset = 0,
+) {
   const [fitted, setFitted] = useState<{ width: number; height: number } | null>(null);
 
   useEffect(() => {
@@ -43,8 +57,10 @@ function useContainSize(container: React.RefObject<HTMLElement | null>, naturalW
     }
 
     const compute = (availableWidth: number, availableHeight: number) => {
-      if (availableWidth <= 0 || availableHeight <= 0) return;
-      const scale = Math.min(availableWidth / naturalWidth, availableHeight / naturalHeight);
+      const perColumnWidth = (availableWidth - columnGap * (columns - 1)) / columns;
+      const contentHeight = availableHeight - heightOffset;
+      if (perColumnWidth <= 0 || contentHeight <= 0) return;
+      const scale = Math.min(perColumnWidth / naturalWidth, contentHeight / naturalHeight);
       setFitted({ width: Math.round(naturalWidth * scale), height: Math.round(naturalHeight * scale) });
     };
 
@@ -58,15 +74,17 @@ function useContainSize(container: React.RefObject<HTMLElement | null>, naturalW
     });
     observer.observe(el);
     return () => observer.disconnect();
-  }, [container, naturalWidth, naturalHeight]);
+  }, [container, naturalWidth, naturalHeight, columns, columnGap, heightOffset]);
 
   return fitted;
 }
 
 export function ImageWorkspace({
   image,
-  previewSrc,
-  previewAlt,
+  cutoutSrc,
+  viewMode,
+  sliderPosition,
+  onSliderPositionChange,
   background,
   zoom,
   isDragging,
@@ -83,7 +101,113 @@ export function ImageWorkspace({
   onDrop,
 }: ImageWorkspaceProps) {
   const workspaceRef = useRef<HTMLElement>(null);
-  const fitted = useContainSize(workspaceRef, image?.width, image?.height);
+  const isSideBySide = viewMode === "side-by-side" && Boolean(cutoutSrc);
+  const fitted = useContainSize(
+    workspaceRef,
+    image?.width,
+    image?.height,
+    isSideBySide ? 2 : 1,
+    isSideBySide ? 20 : 0,
+    isSideBySide ? 24 : 0,
+  );
+
+  const processingOverlay = isProcessing && (
+    <>
+      <div className="processing-mesh" aria-hidden="true">
+        <div className="processing-mesh__grid" />
+        <div className="processing-mesh__scanline" />
+        <span className="processing-mesh__corner processing-mesh__corner--tl" />
+        <span className="processing-mesh__corner processing-mesh__corner--tr" />
+        <span className="processing-mesh__corner processing-mesh__corner--bl" />
+        <span className="processing-mesh__corner processing-mesh__corner--br" />
+      </div>
+      <div className="processing-overlay" role="status" aria-live="polite">
+        <span className="processing-overlay__spinner" aria-hidden="true" />
+        <span>{processingMessage}</span>
+      </div>
+    </>
+  );
+
+  const zoomToolbar = (
+    <div className="zoom-toolbar" role="group" aria-label="Zoom">
+      <button className="icon-button" type="button" onClick={onZoomOut} disabled={zoom <= ZOOM_MIN} aria-label="Zoom out">
+        <Minus size={15} />
+      </button>
+      <button
+        className="zoom-toolbar__value"
+        type="button"
+        onClick={onResetZoom}
+        aria-label={`Zoom ${Math.round(zoom * 100)} percent, reset to fit`}
+      >
+        {Math.round(zoom * 100)}%
+      </button>
+      <button className="icon-button" type="button" onClick={onZoomIn} disabled={zoom >= ZOOM_MAX} aria-label="Zoom in">
+        <Plus size={15} />
+      </button>
+    </div>
+  );
+
+  const stageClassName = (extra = "") =>
+    `image-stage image-stage--${background} ${zoom !== 1 ? "image-stage--zoomed" : ""} ${isProcessing ? "image-stage--processing" : ""} ${extra}`;
+
+  function renderContent() {
+    if (!image) return null;
+
+    if (isSideBySide && cutoutSrc) {
+      return (
+        <div
+          key={image.id}
+          className={`compare-side-by-side ${isProcessing ? "compare-side-by-side--processing" : ""}`}
+          role="group"
+          aria-label="Side-by-side comparison"
+        >
+          <button className="icon-button image-stage__close" type="button" onClick={onClear} aria-label="Close image">
+            <X size={18} />
+          </button>
+          <div className="compare-pane">
+            <span className="compare-pane__label">Original</span>
+            <div className={stageClassName()} style={fitted ?? undefined}>
+              <img src={image.sourceUrl} alt={`Original ${image.fileName}`} style={{ transform: `scale(${zoom})` }} />
+            </div>
+          </div>
+          <div className="compare-pane">
+            <span className="compare-pane__label">Cutout</span>
+            <div className={stageClassName()} style={fitted ?? undefined}>
+              <img src={cutoutSrc} alt={`Cutout of ${image.fileName}`} style={{ transform: `scale(${zoom})` }} />
+            </div>
+          </div>
+          {processingOverlay}
+          {zoomToolbar}
+        </div>
+      );
+    }
+
+    return (
+      <div key={image.id} className={stageClassName()} style={fitted ?? undefined}>
+        <button className="icon-button image-stage__close" type="button" onClick={onClear} aria-label="Close image">
+          <X size={18} />
+        </button>
+        {viewMode === "slider" && cutoutSrc ? (
+          <CompareSlider
+            originalSrc={image.sourceUrl}
+            cutoutSrc={cutoutSrc}
+            fileName={image.fileName}
+            position={sliderPosition}
+            onPositionChange={onSliderPositionChange}
+            zoom={zoom}
+          />
+        ) : (
+          <img
+            src={viewMode === "cutout" && cutoutSrc ? cutoutSrc : image.sourceUrl}
+            alt={viewMode === "cutout" && cutoutSrc ? `Cutout of ${image.fileName}` : `Preview of ${image.fileName}`}
+            style={{ transform: `scale(${zoom})` }}
+          />
+        )}
+        {processingOverlay}
+        {zoomToolbar}
+      </div>
+    );
+  }
 
   return (
     <main
@@ -95,64 +219,7 @@ export function ImageWorkspace({
       onDrop={onDrop}
     >
       {image ? (
-        <div
-          key={image.id}
-          className={`image-stage image-stage--${background} ${zoom !== 1 ? "image-stage--zoomed" : ""} ${isProcessing ? "image-stage--processing" : ""}`}
-          style={fitted ? { width: fitted.width, height: fitted.height } : undefined}
-        >
-          <button className="icon-button image-stage__close" type="button" onClick={onClear} aria-label="Close image">
-            <X size={18} />
-          </button>
-          <img
-            src={previewSrc ?? image.sourceUrl}
-            alt={previewAlt ?? `Preview of ${image.fileName}`}
-            style={{ transform: `scale(${zoom})` }}
-          />
-          {isProcessing && (
-            <div className="processing-mesh" aria-hidden="true">
-              <div className="processing-mesh__grid" />
-              <div className="processing-mesh__scanline" />
-              <span className="processing-mesh__corner processing-mesh__corner--tl" />
-              <span className="processing-mesh__corner processing-mesh__corner--tr" />
-              <span className="processing-mesh__corner processing-mesh__corner--bl" />
-              <span className="processing-mesh__corner processing-mesh__corner--br" />
-            </div>
-          )}
-          {isProcessing && (
-            <div className="processing-overlay" role="status" aria-live="polite">
-              <span className="processing-overlay__spinner" aria-hidden="true" />
-              <span>{processingMessage}</span>
-            </div>
-          )}
-          <div className="zoom-toolbar" role="group" aria-label="Zoom">
-            <button
-              className="icon-button"
-              type="button"
-              onClick={onZoomOut}
-              disabled={zoom <= ZOOM_MIN}
-              aria-label="Zoom out"
-            >
-              <Minus size={15} />
-            </button>
-            <button
-              className="zoom-toolbar__value"
-              type="button"
-              onClick={onResetZoom}
-              aria-label={`Zoom ${Math.round(zoom * 100)} percent, reset to fit`}
-            >
-              {Math.round(zoom * 100)}%
-            </button>
-            <button
-              className="icon-button"
-              type="button"
-              onClick={onZoomIn}
-              disabled={zoom >= ZOOM_MAX}
-              aria-label="Zoom in"
-            >
-              <Plus size={15} />
-            </button>
-          </div>
-        </div>
+        renderContent()
       ) : (
         <button className="empty-state" type="button" onClick={onOpen}>
           <span className="empty-state__icon"><ImagePlus size={28} /></span>

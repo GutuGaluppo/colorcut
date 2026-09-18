@@ -19,6 +19,9 @@ function renderWorkspace(overrides: Partial<Parameters<typeof ImageWorkspace>[0]
   return render(
     <ImageWorkspace
       image={null}
+      viewMode="original"
+      sliderPosition={50}
+      onSliderPositionChange={noop}
       background="checker"
       zoom={1}
       isDragging={false}
@@ -81,6 +84,9 @@ describe("ImageWorkspace", () => {
     rerender(
       <ImageWorkspace
         image={asset}
+        viewMode="original"
+        sliderPosition={50}
+        onSliderPositionChange={noop}
         background="checker"
         zoom={4}
         isDragging={false}
@@ -120,5 +126,50 @@ describe("ImageWorkspace", () => {
     expect(container.querySelector(".processing-mesh__scanline")).toBeInTheDocument();
     expect(container.querySelectorAll(".processing-mesh__corner")).toHaveLength(4);
     expect(container.querySelector(".image-stage")).toHaveClass("image-stage--processing");
+  });
+
+  it("shows the cutout image when viewMode is cutout and a cutout exists", () => {
+    renderWorkspace({ image: asset, viewMode: "cutout", cutoutSrc: "asset://cutout.png" });
+
+    const img = screen.getByAltText("Cutout of cat.png");
+    expect(img).toHaveAttribute("src", "asset://cutout.png");
+  });
+
+  it("renders a draggable comparison slider in slider mode", () => {
+    renderWorkspace({ image: asset, viewMode: "slider", cutoutSrc: "asset://cutout.png", sliderPosition: 30 });
+
+    const handle = screen.getByRole("slider", { name: /comparison position/i });
+    expect(handle).toHaveAttribute("aria-valuenow", "30");
+  });
+
+  it("renders both images side by side with labels in side-by-side mode", () => {
+    const { container } = renderWorkspace({ image: asset, viewMode: "side-by-side", cutoutSrc: "asset://cutout.png" });
+
+    expect(screen.getByText("Original")).toBeInTheDocument();
+    expect(screen.getByText("Cutout")).toBeInTheDocument();
+    expect(screen.getByAltText("Original cat.png")).toBeInTheDocument();
+    expect(screen.getByAltText("Cutout of cat.png")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /close image/i })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Zoom" })).toBeInTheDocument();
+    for (const stage of container.querySelectorAll(".image-stage")) {
+      expect(stage).toHaveStyle({ width: "190px", height: "152px" });
+    }
+  });
+
+  it("keeps processing feedback visible in side-by-side mode", () => {
+    renderWorkspace({
+      image: asset,
+      viewMode: "side-by-side",
+      cutoutSrc: "asset://cutout.png",
+      isProcessing: true,
+      processingMessage: "Extracting palette…",
+    });
+
+    expect(screen.getByRole("status")).toHaveTextContent("Extracting palette…");
+  });
+
+  it("falls back to showing the original image when slider/side-by-side is selected without a cutout yet", () => {
+    renderWorkspace({ image: asset, viewMode: "slider", cutoutSrc: undefined });
+    expect(screen.getByAltText("Preview of cat.png")).toBeInTheDocument();
   });
 });

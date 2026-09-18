@@ -63,7 +63,7 @@ describe("App import flow", () => {
 
     selectFile(input, file);
 
-    await waitFor(() => expect(screen.getByText("Choose a PNG, JPEG, or WebP image.")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Choose a PNG, JPEG, or WebP image."));
     expect(screen.getByRole("button", { name: /drop an image here/i })).toBeInTheDocument();
   });
 
@@ -80,7 +80,9 @@ describe("App import flow", () => {
     fireEvent.click(screen.getAllByRole("button", { name: /remove background/i })[0]);
 
     await waitFor(() =>
-      expect(screen.getByText("This native operation is available in the ColorCut desktop app.")).toBeInTheDocument(),
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "This native operation is available in the ColorCut desktop app.",
+      ),
     );
     expect(screen.getByAltText("Preview of cat.png")).toBeInTheDocument();
   });

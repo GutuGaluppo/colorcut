@@ -105,7 +105,7 @@ describe("getClipboardImage", () => {
         read: vi.fn().mockResolvedValue([{ types: ["text/plain"] }]),
       },
     });
-    await expect(getClipboardImage()).rejects.toThrow(/does not contain a supported image/);
+    await expect(getClipboardImage()).rejects.toThrow(/doesn't contain image data/);
   });
 
   it("returns a File built from the first supported clipboard item", async () => {
