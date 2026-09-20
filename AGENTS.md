@@ -141,11 +141,7 @@ For Tauri/runtime changes, also run `pnpm tauri dev` or `pnpm tauri build` on a 
 
 Phases 1–5 (import/preview, background removal, palette extraction, comparison/export polish, macOS packaging) are complete and verified against `docs/RELEASE_CHECKLIST.md` §§1–5, including a manual QA pass against the packaged `.app` (not just `pnpm tauri dev`) that found and fixed several release-build-only bugs — see `docs/DECISIONS.md` ADR-005 through ADR-012.
 
-What's left is release-gate work that needs a human decision or credential, not more feature implementation:
-
-- **Release decisions** (`docs/RELEASE_CHECKLIST.md` §1): pin the version across `package.json`/`Cargo.toml`/`tauri.conf.json`, confirm the license/copyright owner.
-- **Signing and notarization** (§6): needs an approved Apple signing identity configured locally/in CI — do not configure this without explicit approval, per "Scope requiring explicit approval" below.
-- **GitHub release** (§7): depends on the notarized artifact from the step above.
+What's left is cutting the 1.0.0 release, decided in `docs/DECISIONS.md` ADR-013: version `1.0.0`, proprietary license (Gutu Galuppo), distributed as an **unsigned pre-release** because no Apple Developer identity is available. Follow `docs/RELEASE_CHECKLIST.md` §§5–7 using the unsigned path (§6a). Do not configure Apple signing or notarization without explicit approval and a Developer ID from the owner (§6b).
 
 A known, accepted (not a bug to fix) limitation: `isnet-general-use` can under-detect a plain, low-texture light garment against a light background (see the ADR-005 follow-up note). Revisit only via the model-benchmark process in `docs/MODEL_NOTES.md`, not by re-tuning the current pipeline further — that was already tried and ruled out.
 

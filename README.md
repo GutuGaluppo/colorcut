@@ -4,6 +4,14 @@ A focused, local-first macOS utility for background removal and palette extracti
 
 All image processing runs locally. ColorCut has no account, cloud upload, telemetry, or runtime network requirement.
 
+## Install
+
+Requires an Apple Silicon Mac running macOS 11.0 or newer. Download the latest `.dmg` from the repository's Releases page and drag ColorCut into Applications.
+
+Releases are currently **unsigned and not notarized** (no Apple Developer ID is used), so macOS blocks the first launch. To open it, go to **System Settings → Privacy & Security** and click **Open Anyway** next to the ColorCut message (on macOS 11–14, Control-click the app and choose **Open** also works). Each release's notes list the DMG's SHA-256 checksum and the exact steps; verify the download with `shasum -a 256 <file>.dmg` first.
+
+An app you build yourself with the steps below is not marked as downloaded, so macOS does not show this warning for it. Building is subject to the terms in [LICENSE](LICENSE).
+
 ## Development
 
 Requirements: macOS 11.0 or newer, Node.js, pnpm, Rust, and the Tauri 2 platform prerequisites.
@@ -62,3 +70,7 @@ Local builds are unsigned unless an approved Apple signing identity and notariza
 - Typed frontend/native boundary, accessible states, tests, and macOS bundle configuration.
 
 Architecture and product constraints live in [IMPLEMENTATION.md](IMPLEMENTATION.md), [AGENTS.md](AGENTS.md), and [docs/DECISIONS.md](docs/DECISIONS.md). Model evaluation and licensing notes live in [docs/MODEL_NOTES.md](docs/MODEL_NOTES.md).
+
+## License
+
+ColorCut is proprietary software. Copyright (c) 2026 Gutu Galuppo. All rights reserved — see [LICENSE](LICENSE). Bundled third-party components (including the Apache-2.0 `isnet-general-use` model) and their licenses are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
