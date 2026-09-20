@@ -374,18 +374,20 @@ Exit: a clean checkout can build a distributable macOS bundle.
 
 ## 15. MVP definition of done
 
-- [ ] PNG/JPEG/WebP import works by open, drop, and clipboard.
-- [ ] Background removal runs locally without freezing the UI.
-- [ ] Transparent PNG exports at original dimensions.
-- [ ] Original and Subject palette modes work.
-- [ ] 4/6/8/12/16-color choices work.
-- [ ] HEX/RGB/HSL/OKLCH and percentages are displayed and copyable.
-- [ ] JSON/CSS/TXT palette exports work.
-- [ ] Empty, loading, success, and error states are accessible.
-- [ ] No runtime network requirement or authentication exists.
-- [ ] Frontend and Rust test suites pass.
-- [ ] Setup and model licensing are documented.
-- [ ] The app remains a focused single-window utility.
+All items below are met, verified against the packaged `.app` (not only `pnpm tauri dev`) during the manual QA pass recorded in `docs/DECISIONS.md` ADR-006 through ADR-012.
+
+- [x] PNG/JPEG/WebP import works by open, drop, and clipboard.
+- [x] Background removal runs locally without freezing the UI.
+- [x] Transparent PNG exports at original dimensions.
+- [x] Original and Subject palette modes work.
+- [x] 4/6/8/12/16-color choices work.
+- [x] HEX/RGB/HSL/OKLCH and percentages are displayed and copyable.
+- [x] JSON/CSS/TXT palette exports work.
+- [x] Empty, loading, success, and error states are accessible.
+- [x] No runtime network requirement or authentication exists.
+- [x] Frontend and Rust test suites pass.
+- [x] Setup and model licensing are documented.
+- [x] The app remains a focused single-window utility.
 
 ## 16. Risks and decision gates
 
@@ -411,5 +413,7 @@ Exit: a clean checkout can build a distributable macOS bundle.
 
 ## 18. Immediate task
 
-Start with **Phase 1 — Import and preview**. Do not integrate an inference model until the import flow, UI states, command boundary, and model evaluation criteria are stable.
+All MVP phases (§14) and the definition of done (§15) are complete and verified. What remains is release-gate work, not feature implementation — see `docs/RELEASE_CHECKLIST.md` §§1, 6, and 7 (version/license decisions, signing and notarization, and the GitHub release itself). Each needs a human decision or Apple credentials that can't be supplied by an agent; see `AGENTS.md`'s "Current priority" and "Scope requiring explicit approval."
+
+Any new feature work from here (e.g. a stronger background-removal model, manual touch-up tools, batch processing) is post-MVP scope per `AGENTS.md` non-goals and needs an explicit product decision before starting.
 
