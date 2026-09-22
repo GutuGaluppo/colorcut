@@ -1,9 +1,11 @@
 [package]
 name = "colorcut"
-version = "0.1.0"
+version = "1.0.0"
 description = "Local-first palette and cutout utility"
 authors = ["ColorCut contributors"]
 edition = "2021"
+license-file = "../LICENSE"
+publish = false
 
 [lib]
 name = "colorcut_lib"
