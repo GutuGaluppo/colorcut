@@ -386,23 +386,23 @@ Not part of the MVP; an explicit, scoped exception to the local-first non-negoti
 
 **Owner actions (outside this repo, prerequisite to the app work below):** step-by-step commands and exact contract live in `cloudflare-worker/README.md`; the Worker source is `cloudflare-worker/src/index.ts` (done — see status below).
 
-1. Get a production Photoroom API key (billing enabled, not `sandbox_sk_pr_...`) and look for a spend-cap/budget-alert setting on it — `cloudflare-worker/README.md` §1.
-2. Deploy the Worker to Cloudflare: create the `LICENSES` KV namespace, set `PHOTOROOM_API_KEY` as a Worker secret, `wrangler deploy` — `cloudflare-worker/README.md` §2.
-3. Issue license codes manually for now (`wrangler kv key put`, no payment-platform integration yet — see the README's note on why that's an acceptable MVP shortcut).
-4. Smoke-test the Worker directly with `curl` (valid code + credit, invalid code, zero credit) before wiring the app to it — `cloudflare-worker/README.md` §2.6.
-5. Update `PHOTOROOM_PROXY_URL` in `src-tauri/src/lib.rs` from its placeholder to the real deployed Worker URL.
+1. ~~Get a production Photoroom API key~~ — done; set as the Worker's `PHOTOROOM_API_KEY` secret.
+2. ~~Deploy the Worker to Cloudflare~~ — done: live at `https://colorcut-photoroom-proxy.colorcutapp.workers.dev` (confirmed responding with the Worker's own logic, not a DNS/404 fallback).
+3. Issue license codes manually for now (`wrangler kv key put`, no payment-platform integration yet — see the README's note on why that's an acceptable MVP shortcut). Ongoing as each customer pays, not a one-time setup step.
+4. ~~Smoke-test the Worker directly with `curl`~~ — done.
+5. ~~Update `PHOTOROOM_PROXY_URL`~~ — done (`src-tauri/src/lib.rs`), pointing at the real Worker above.
 
 **App work (this repo) — done:**
 
 6. ~~Add a Tauri network capability scoped to the Worker's domain~~ — turned out to be unnecessary: the call happens entirely in Rust (`reqwest`, inside `PhotoroomRemovalService`), never through the webview-exposed `http` plugin, so Tauri's capability/ACL system (which only gates plugin-exposed and JS-invokable surfaces) never comes into play. No capability file was touched.
 7. `PhotoroomRemovalService` in Rust (`src-tauri/src/services/photoroom_removal_service.rs`), same typed-DTO pattern as `BackgroundRemovalService`, calling the Worker and mapping its responses to a structured `PhotoroomCloudError` (`src-tauri/src/models/photoroom_cloud_error.rs`) with a `kind` field the frontend branches on, not a bare string.
 8. `remove_background_cloud`, `set_photoroom_license`, `get_photoroom_license_status` Tauri commands (§11) — `src-tauri/src/commands/photoroom.rs`.
-9. Settings surface: a "ColorCut Pro license" field in the Inspector's Cutout section (not a separate window, per the single-window rule), storing the code as a plain local config value.
-10. A separate, explicitly-labeled "Cloud cutout (Photoroom)" action-card next to the local "Remove background" one; never substitutes for it.
+9. Settings surface: a "ColorCut Pro license" field in the Inspector's Cutout section (not a separate window, per the single-window rule), storing the code as a plain local config value. Once saved, the input is replaced by a "License saved" indicator and an "Edit License" button (re-entering a code always starts blank — the plaintext code is never read back from storage for display).
+10. A separate, explicitly-labeled "Remove with Photoroom" action next to the local "Remove background" one — both as an Inspector action-card and as an item in the TopBar's "Remove background" split-button dropdown; never substitutes for the local default action.
 11. Offline/unreachable modal (`src/components/ui/Modal.tsx`): instant `navigator.onLine` check plus the request's own network-class failure mapped to the same modal, with a "use local removal instead" action that closes the modal and runs local removal. A Worker/Photoroom-side failure (`kind: "unavailable"`) shows the same modal component with different copy, per ADR-014's caveat that the two are distinguishable failures.
 12. No-credit / invalid-license / missing-license errors surface through the existing Toast, using the specific message from the Rust error (not a generic fallback).
 
-**Status (2026-09-23):** steps 6–12 are implemented and covered by `cargo test`/`pnpm test`, manually smoke-tested in `pnpm tauri dev` (license save/status, and the offline modal with Wi-Fi off). Steps 1–5 are still open — the Worker code exists (`cloudflare-worker/`) but has not been deployed, so `PHOTOROOM_PROXY_URL` is still the placeholder and any real cloud-cutout attempt fails with a network/unavailable error by design.
+**Status (2026-09-23):** all of Phase 6 is done — steps 1–5 (production Photoroom key, Worker deployed and confirmed live, license issuance process, smoke-tested, `PHOTOROOM_PROXY_URL` pointed at the real Worker) and steps 6–12 (implemented, covered by `cargo test`/`pnpm test`, manually smoke-tested in `pnpm tauri dev` including the offline modal with Wi-Fi off). Remaining open item, not blocking: automating license issuance from a real payment-platform webhook instead of manual `wrangler kv key put` (see `cloudflare-worker/README.md`).
 
 Exit: a user with a valid license and credit balance can produce a cloud cutout end-to-end (button → Worker → Photoroom → transparent PNG in the preview), offline/no-credit/invalid-license all produce clear recoverable-error UI, and local removal is provably unaffected (existing Rust/frontend test suites still pass unchanged).
 
@@ -451,7 +451,7 @@ This list describes the shipped 1.0.0 MVP and is not retroactively changed by Ph
 
 All MVP phases (§14, Phases 0–5) and the definition of done (§15) are complete and verified for 1.0.0. Release-gate work (`docs/RELEASE_CHECKLIST.md` §§1, 6, and 7) is separately tracked and still needs a human decision or Apple credentials an agent can't supply.
 
-The active feature work is **Phase 6 — Photoroom cloud cutout** (§14), approved in `docs/DECISIONS.md` ADR-014. Steps 6–12 (app-side: `PhotoroomRemovalService`, commands, Settings license field, cloud button, offline/error modals) are implemented, tested, and manually smoke-tested — see the Phase 6 status note. What's left is steps 1–5: getting a production Photoroom key, deploying `cloudflare-worker/` to Cloudflare, and pointing `PHOTOROOM_PROXY_URL` (`src-tauri/src/lib.rs`) at the real Worker URL. These need the owner's own Photoroom/Cloudflare accounts and are not agent-automatable; `cloudflare-worker/README.md` has the exact commands.
+**Phase 6 — Photoroom cloud cutout** (§14), approved in `docs/DECISIONS.md` ADR-014, is complete and live: the Worker is deployed, `PHOTOROOM_PROXY_URL` points at it, and the app-side UI (Inspector action-card, TopBar split-button dropdown, license field, offline/error modal) is implemented, tested, and manually smoke-tested — see the Phase 6 status note. Remaining, non-blocking: license issuance is still manual (`wrangler kv key put`); automating it from a payment-platform webhook is a future task, not required to sell credit packs today.
 
 Any new feature work from here (e.g. a stronger background-removal model, manual touch-up tools, batch processing) is post-MVP scope per `AGENTS.md` non-goals and needs an explicit product decision before starting.
 

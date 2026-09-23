@@ -10,12 +10,9 @@ use tauri::Manager;
 use services::background_removal_service::BackgroundRemovalService;
 use services::photoroom_removal_service::PhotoroomRemovalService;
 
-/// Placeholder until IMPLEMENTATION.md Phase 6 step 3 (ADR-014) deploys the real
-/// Cloudflare Worker proxy. Update once that URL exists; the cloud cutout command
-/// will fail with a network/unavailable error against this placeholder, which is
-/// expected and distinct from the missing-license and no-credit errors it also maps.
-const PHOTOROOM_PROXY_URL: &str =
-    "https://colorcut-photoroom-proxy.example.workers.dev/remove-background";
+/// The Cloudflare Worker proxy deployed per `cloudflare-worker/README.md`
+/// (IMPLEMENTATION.md Phase 6, ADR-014) — never `sdk.photoroom.com` directly.
+const PHOTOROOM_PROXY_URL: &str = "https://colorcut-photoroom-proxy.colorcutapp.workers.dev";
 
 pub struct AppState {
     pub background_removal: BackgroundRemovalService,
