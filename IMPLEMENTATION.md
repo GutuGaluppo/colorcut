@@ -276,18 +276,26 @@ export_cutout
 export_palette
 ```
 
+Post-MVP, per ADR-014 (Phase 6):
+
+```text
+remove_background_cloud
+set_photoroom_license
+get_photoroom_license_status
+```
+
 Commands should be thin: validate input, invoke a service, map errors, and return a typed DTO. Clipboard and file selection may use official Tauri plugins where that gives better native behavior.
 
 ## 12. Security and privacy
 
-- No network permission for MVP runtime.
+- No network permission for MVP runtime. **Exception (ADR-014, Phase 6):** the opt-in, paid Photoroom cloud cutout adds one narrowly-scoped network capability to the owner's own Cloudflare Worker domain only — never to `sdk.photoroom.com` directly, and never enabled unless the user explicitly triggers that feature. All other flows remain fully offline.
 - Minimum Tauri capabilities only.
 - No arbitrary shell execution.
 - Canonicalize and validate file paths at the native boundary.
 - Validate decoded image dimensions before expensive allocation.
 - Cap unreasonable input sizes with an actionable message.
 - Treat model and image decoding failures as untrusted-input errors.
-- Do not log image bytes, paths, or palette source data in production.
+- Do not log image bytes, paths, or palette source data in production. The same applies to the Photoroom cloud path's proxy: it forwards bytes and returns bytes, with no logging or storage of user images (ADR-014).
 
 ## 13. Testing strategy
 
@@ -372,6 +380,30 @@ Exit: all MVP criteria pass and the product feels cohesive.
 
 Exit: a clean checkout can build a distributable macOS bundle.
 
+### Phase 6 — Photoroom cloud cutout (premium add-on, post-MVP, per ADR-014)
+
+Not part of the MVP; an explicit, scoped exception to the local-first non-negotiable rule, approved by the product owner. See `docs/DECISIONS.md` ADR-014 for the full decision, reasoning, and pricing.
+
+**Owner actions (outside this repo, prerequisite to the app work below):**
+
+1. Pick and set up the payment platform for credit-pack sales (Lemonsqueezy recommended for its license-validation API) and create the 50/100/250-credit products at $1.99/$3.29/$7.19.
+2. Create the Cloudflare account/Worker project and a KV namespace for credit balances.
+3. Write and deploy the Worker: receives an image + license code, validates the code against the payment platform's license API, checks/decrements the KV credit balance, forwards the image to `https://sdk.photoroom.com/v1/segment` (`format=png&channels=rgba&size=full&crop=false`) using the real Photoroom key (provisioned as a `wrangler secret`, never committed), and streams the resulting PNG straight back — no logging or storage of the image at any step.
+4. Set a spend cap/budget alert on the Photoroom key from the Photoroom dashboard (defense in depth, not a substitute for the Worker's own credit check).
+5. Smoke-test the Worker directly (valid code + credit, invalid code, zero credit, Photoroom down) before wiring the app to it.
+
+**App work (this repo):**
+
+6. Add a Tauri network capability scoped to the Worker's domain only (`src-tauri/capabilities/`).
+7. Add `PhotoroomRemovalService` in Rust (`src-tauri/src/services/`), same typed-DTO success/error pattern as `BackgroundRemovalService`, calling the Worker (not Photoroom directly) and mapping its error responses (invalid license, no credit, network/Worker/Photoroom unreachable) to stable command errors.
+8. Add the `remove_background_cloud`, `set_photoroom_license`, and `get_photoroom_license_status` Tauri commands (§11), thin per the existing convention.
+9. Add a Settings surface for the user to paste their license code (stored locally as a plain config value — it identifies a purchase, it is not a secret that needs keychain-grade protection).
+10. Add a separate, explicitly-labeled "Cloud cutout" action next to the existing local "Remove background" button; never substitutes for it.
+11. Add the offline/unreachable explanatory modal: an instant `navigator.onLine` check for immediate feedback, plus handling the request's own network-class failures the same way (since `navigator.onLine` misses cases like a captive portal), with a "use local removal instead" action. Distinguish this from a "Worker/Photoroom is down" error, which is a different message (see ADR-014 caveats).
+12. Add the no-credit / invalid-license states (idle/disabled/processing/success/error, matching §9's pattern) with a link to buy more credits.
+
+Exit: a user with a valid license and credit balance can produce a cloud cutout end-to-end (button → Worker → Photoroom → transparent PNG in the preview), offline/no-credit/invalid-license all produce clear recoverable-error UI, and local removal is provably unaffected (existing Rust/frontend test suites still pass unchanged).
+
 ## 15. MVP definition of done
 
 All items below are met, verified against the packaged `.app` (not only `pnpm tauri dev`) during the manual QA pass recorded in `docs/DECISIONS.md` ADR-006 through ADR-012.
@@ -388,6 +420,8 @@ All items below are met, verified against the packaged `.app` (not only `pnpm ta
 - [x] Frontend and Rust test suites pass.
 - [x] Setup and model licensing are documented.
 - [x] The app remains a focused single-window utility.
+
+This list describes the shipped 1.0.0 MVP and is not retroactively changed by Phase 6 (§14): the Photoroom cloud cutout is an explicit, opt-in, post-MVP exception approved via `docs/DECISIONS.md` ADR-014, not a revision of what "no runtime network requirement" meant at 1.0.0.
 
 ## 16. Risks and decision gates
 
@@ -413,7 +447,9 @@ All items below are met, verified against the packaged `.app` (not only `pnpm ta
 
 ## 18. Immediate task
 
-All MVP phases (§14) and the definition of done (§15) are complete and verified. What remains is release-gate work, not feature implementation — see `docs/RELEASE_CHECKLIST.md` §§1, 6, and 7 (version/license decisions, signing and notarization, and the GitHub release itself). Each needs a human decision or Apple credentials that can't be supplied by an agent; see `AGENTS.md`'s "Current priority" and "Scope requiring explicit approval."
+All MVP phases (§14, Phases 0–5) and the definition of done (§15) are complete and verified for 1.0.0. Release-gate work (`docs/RELEASE_CHECKLIST.md` §§1, 6, and 7) is separately tracked and still needs a human decision or Apple credentials an agent can't supply.
+
+The active feature work is **Phase 6 — Photoroom cloud cutout** (§14), approved in `docs/DECISIONS.md` ADR-014. The owner-side prerequisites (payment platform, Cloudflare Worker + KV, Photoroom production key) are steps 1–5 of that phase and are not agent-automatable. Steps 6–12 (Tauri capability, `PhotoroomRemovalService`, commands, Settings license field, cloud button, offline/error modals) are in progress against a placeholder Worker URL until the real one exists.
 
 Any new feature work from here (e.g. a stronger background-removal model, manual touch-up tools, batch processing) is post-MVP scope per `AGENTS.md` non-goals and needs an explicit product decision before starting.
 
