@@ -924,6 +924,104 @@
 	background: var(--cc-surface-soft);
 }
 
+.modal-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 30;
+	display: grid;
+	place-items: center;
+	padding: 24px;
+	background: rgba(17, 24, 39, 0.4);
+}
+
+.modal {
+	width: 100%;
+	max-width: 420px;
+	padding: 20px;
+	border: 1px solid var(--cc-border);
+	border-radius: var(--cc-radius-lg);
+	background: var(--cc-surface);
+	box-shadow: 0 24px 64px rgba(16, 24, 40, 0.28);
+}
+
+.modal__header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.modal__header h2 {
+	margin: 0;
+	font-size: 15px;
+}
+
+.modal__dismiss {
+	display: grid;
+	width: 26px;
+	height: 26px;
+	padding: 0;
+	place-items: center;
+	color: var(--cc-text-secondary);
+	border: 0;
+	border-radius: 8px;
+	background: transparent;
+	cursor: pointer;
+}
+
+.modal__dismiss:hover {
+	color: var(--cc-text);
+	background: var(--cc-surface-soft);
+}
+
+.modal__body {
+	margin: 10px 0 0;
+	color: var(--cc-text-secondary);
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.modal__actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 18px;
+}
+
+.license-field {
+	display: grid;
+	gap: 6px;
+	margin-top: 10px;
+}
+
+.license-field label {
+	color: var(--cc-text-secondary);
+	font-size: 11px;
+	font-weight: 650;
+}
+
+.license-field__row {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	gap: 8px;
+}
+
+.license-field input {
+	height: 34px;
+	padding: 0 9px;
+	color: var(--cc-text);
+	border: 1px solid var(--cc-border);
+	border-radius: 8px;
+	background: #fff;
+	font-size: 12px;
+}
+
+.license-field__status {
+	margin: 0;
+	color: var(--cc-text-secondary);
+	font-size: 11px;
+}
+
 @keyframes toast-enter {
 	from {
 		opacity: 0;

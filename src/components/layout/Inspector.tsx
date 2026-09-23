@@ -1,5 +1,14 @@
-import { Palette, Scissors, Sparkles } from "lucide-react";
-import type { ImageAsset, PaletteCount, PaletteResult, PaletteSource, PreviewBackground, RemovalResult } from "../../types/domain";
+import { Cloud, Palette, Scissors, Sparkles } from "lucide-react";
+import { useState } from "react";
+import type {
+  ImageAsset,
+  PaletteCount,
+  PaletteResult,
+  PaletteSource,
+  PhotoroomLicenseStatus,
+  PreviewBackground,
+  RemovalResult,
+} from "../../types/domain";
 import type { ViewMode } from "../../store/useAppStore";
 import type { PaletteExportFormat } from "../../features/palette/exportPalette";
 import { PalettePreview } from "../palette/PalettePreview";
@@ -33,6 +42,10 @@ type InspectorProps = {
   onExtractPalette: () => void;
   onExportPalette: (format: PaletteExportFormat) => void;
   onExportPaletteImage: () => void;
+  photoroomLicense: PhotoroomLicenseStatus;
+  canRemoveBackgroundCloud: boolean;
+  onRemoveBackgroundCloud: () => void;
+  onSavePhotoroomLicense: (code: string) => void;
 };
 
 function formatBytes(bytes: number) {
@@ -59,7 +72,13 @@ export function Inspector({
   onExtractPalette,
   onExportPalette,
   onExportPaletteImage,
+  photoroomLicense,
+  canRemoveBackgroundCloud,
+  onRemoveBackgroundCloud,
+  onSavePhotoroomLicense,
 }: InspectorProps) {
+  const [licenseInput, setLicenseInput] = useState("");
+
   return (
     <aside className="inspector" aria-label="Image inspector">
       <section className="inspector__section">
@@ -87,6 +106,44 @@ export function Inspector({
                 : "Local processing"}
           </small>
         </button>
+
+        <button
+          className="action-card"
+          type="button"
+          disabled={!canRemoveBackgroundCloud}
+          onClick={onRemoveBackgroundCloud}
+        >
+          <span><Cloud size={18} /> {isProcessing ? "Cloud processing…" : "Cloud cutout (Photoroom)"}</span>
+          <small>
+            {photoroomLicense.hasLicense
+              ? "Uses your Pro license · sends this image to Photoroom · needs internet"
+              : "Pro feature — add a license below · sends this image to Photoroom · needs internet"}
+          </small>
+        </button>
+
+        <div className="license-field">
+          <label htmlFor="photoroom-license">ColorCut Pro license</label>
+          <div className="license-field__row">
+            <input
+              id="photoroom-license"
+              type="text"
+              placeholder="Paste your license code"
+              value={licenseInput}
+              onChange={(event) => setLicenseInput(event.target.value)}
+            />
+            <button
+              className="button button--quiet"
+              type="button"
+              disabled={!licenseInput.trim()}
+              onClick={() => onSavePhotoroomLicense(licenseInput.trim())}
+            >
+              Save
+            </button>
+          </div>
+          <p className="license-field__status">
+            {photoroomLicense.hasLicense ? "License saved on this device." : "No license saved yet."}
+          </p>
+        </div>
 
         {removal && (
           <fieldset className="field">

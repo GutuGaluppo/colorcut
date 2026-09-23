@@ -18,9 +18,13 @@ tauri-build = { version = "2", features = [] }
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
 ndarray = "0.17"
 ort = { version = "2.0.0-rc.13", features = ["coreml", "download-binaries"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "multipart"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tauri = { version = "2", features = ["protocol-asset"] }
 tauri-plugin-dialog = "2"
 thiserror = "2"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 

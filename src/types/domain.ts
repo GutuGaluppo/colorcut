@@ -40,3 +40,7 @@ export type PaletteResult = {
 
 export type PreviewBackground = "checker" | "white" | "black";
 
+export type PhotoroomLicenseStatus = {
+  hasLicense: boolean;
+};
+

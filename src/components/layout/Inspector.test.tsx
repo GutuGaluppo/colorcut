@@ -59,6 +59,10 @@ function renderInspector(overrides: Partial<Parameters<typeof Inspector>[0]> = {
       onExtractPalette={vi.fn()}
       onExportPalette={vi.fn()}
       onExportPaletteImage={vi.fn()}
+      photoroomLicense={{ hasLicense: false }}
+      canRemoveBackgroundCloud={false}
+      onRemoveBackgroundCloud={vi.fn()}
+      onSavePhotoroomLicense={vi.fn()}
       {...overrides}
     />,
   );
@@ -130,6 +134,40 @@ describe("Inspector", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /remove background/i }));
     expect(onRemoveBackground).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables the cloud cutout action without an image", () => {
+    renderInspector();
+    expect(screen.getByRole("button", { name: /cloud cutout/i })).toBeDisabled();
+  });
+
+  it("calls onRemoveBackgroundCloud when the cloud cutout action is clicked", () => {
+    const onRemoveBackgroundCloud = vi.fn();
+    renderInspector({ image: asset, canRemoveBackgroundCloud: true, onRemoveBackgroundCloud });
+
+    fireEvent.click(screen.getByRole("button", { name: /cloud cutout/i }));
+    expect(onRemoveBackgroundCloud).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows no-license guidance until a license is saved", () => {
+    renderInspector();
+    expect(screen.getByText("No license saved yet.")).toBeInTheDocument();
+  });
+
+  it("shows the license is saved once photoroomLicense reports one", () => {
+    renderInspector({ photoroomLicense: { hasLicense: true } });
+    expect(screen.getByText("License saved on this device.")).toBeInTheDocument();
+  });
+
+  it("calls onSavePhotoroomLicense with the trimmed license code", () => {
+    const onSavePhotoroomLicense = vi.fn();
+    renderInspector({ onSavePhotoroomLicense });
+
+    fireEvent.change(screen.getByLabelText("ColorCut Pro license"), {
+      target: { value: "  CC-PRO-1234  " },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSavePhotoroomLicense).toHaveBeenCalledWith("CC-PRO-1234");
   });
 
   it("disables the subject palette source until a cutout exists", () => {

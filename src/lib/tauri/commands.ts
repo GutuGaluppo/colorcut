@@ -1,5 +1,12 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
-import type { PaletteCount, PaletteResult, PaletteSource, RemovalResult, RgbColor } from "../../types/domain";
+import type {
+  PaletteCount,
+  PaletteResult,
+  PaletteSource,
+  PhotoroomLicenseStatus,
+  RemovalResult,
+  RgbColor,
+} from "../../types/domain";
 
 function assertTauriRuntime() {
   if (!("__TAURI_INTERNALS__" in window)) {
@@ -20,6 +27,23 @@ export async function cacheSourceImage(imageBytes: Uint8Array): Promise<string> 
 export async function removeBackground(sourcePath: string): Promise<RemovalResult> {
   assertTauriRuntime();
   return invoke<RemovalResult>("remove_background", { sourcePath });
+}
+
+/// Sends the image to ColorCut's own Cloudflare Worker proxy, never to Photoroom
+/// directly (ADR-014) — requires internet and a valid, credited license (Settings).
+export async function removeBackgroundCloud(sourcePath: string): Promise<RemovalResult> {
+  assertTauriRuntime();
+  return invoke<RemovalResult>("remove_background_cloud", { sourcePath });
+}
+
+export async function setPhotoroomLicense(code: string): Promise<void> {
+  assertTauriRuntime();
+  return invoke<void>("set_photoroom_license", { code });
+}
+
+export async function getPhotoroomLicenseStatus(): Promise<PhotoroomLicenseStatus> {
+  assertTauriRuntime();
+  return invoke<PhotoroomLicenseStatus>("get_photoroom_license_status");
 }
 
 export async function exportCutout(sourcePath: string, destinationPath: string): Promise<void> {

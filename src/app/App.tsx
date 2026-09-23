@@ -14,10 +14,32 @@ import {
   exportCutout,
   exportPaletteImage,
   extractPalette,
+  getPhotoroomLicenseStatus,
   removeBackground,
+  removeBackgroundCloud,
+  setPhotoroomLicense,
   writeTextFile,
 } from "../lib/tauri/commands";
 import { useAppStore } from "../store/useAppStore";
+import { Modal } from "../components/ui/Modal";
+import type { PhotoroomLicenseStatus } from "../types/domain";
+
+function errorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string" && error.trim()) return error;
+  return fallback;
+}
+
+type PhotoroomCloudErrorPayload = { kind: string; message: string };
+
+function isPhotoroomCloudError(error: unknown): error is PhotoroomCloudErrorPayload {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    typeof (error as Record<string, unknown>).kind === "string" &&
+    typeof (error as Record<string, unknown>).message === "string"
+  );
+}
 
 function fileNameOf(path: string) {
   return path.split(/[/\\]/).pop() ?? path;
@@ -28,6 +50,8 @@ export function App() {
   const dragDepth = useRef(0);
   const [isDragging, setIsDragging] = useState(false);
   const [toast, setToast] = useState<{ tone: "success" | "error"; message: string } | null>(null);
+  const [photoroomLicense, setPhotoroomLicenseStatus] = useState<PhotoroomLicenseStatus>({ hasLicense: false });
+  const [cloudNotice, setCloudNotice] = useState<{ title: string; message: string } | null>(null);
   const {
     image,
     removal,
@@ -56,6 +80,12 @@ export function App() {
   } = useAppStore();
 
   useEffect(() => () => useAppStore.getState().clearImage(), []);
+
+  useEffect(() => {
+    getPhotoroomLicenseStatus()
+      .then(setPhotoroomLicenseStatus)
+      .catch(() => setPhotoroomLicenseStatus({ hasLicense: false }));
+  }, []);
 
   useEffect(() => {
     const shouldNotify = operationStatus === "error" || (operationStatus === "success" && message.startsWith("Exported "));
@@ -98,6 +128,46 @@ export function App() {
     } catch (error) {
       const message = error instanceof Error ? error.message : "Background removal failed.";
       setOperation("error", message);
+    }
+  }
+
+  async function handleRemoveBackgroundCloud() {
+    if (!image) return;
+    if (!navigator.onLine) {
+      setCloudNotice({
+        title: "You're offline",
+        message:
+          "Cloud cutout needs an internet connection, unlike local background removal. Check your connection and try again, or use local removal instead.",
+      });
+      return;
+    }
+    setOperation("processing", "Sending to Photoroom…");
+    try {
+      const bytes = await readObjectUrlBytes(image.sourceUrl);
+      const sourcePath = await cacheSourceImage(bytes);
+      setRemoval(await removeBackgroundCloud(sourcePath));
+    } catch (error) {
+      if (isPhotoroomCloudError(error)) {
+        if (error.kind === "offline") {
+          setCloudNotice({ title: "You're offline", message: error.message });
+        } else if (error.kind === "unavailable") {
+          setCloudNotice({ title: "Cloud cutout unavailable", message: error.message });
+        } else {
+          setOperation("error", error.message);
+        }
+      } else {
+        setOperation("error", errorMessage(error, "Cloud cutout failed."));
+      }
+    }
+  }
+
+  async function handleSavePhotoroomLicense(code: string) {
+    try {
+      await setPhotoroomLicense(code);
+      setPhotoroomLicenseStatus(await getPhotoroomLicenseStatus());
+      setOperation("success", "License saved");
+    } catch (error) {
+      setOperation("error", errorMessage(error, "The license code could not be saved."));
     }
   }
 
@@ -197,6 +267,7 @@ export function App() {
 
   const isProcessing = operationStatus === "processing";
   const canRemoveBackground = Boolean(image) && !isProcessing;
+  const canRemoveBackgroundCloud = Boolean(image) && !isProcessing;
   const canExport = Boolean(removal) && !isProcessing;
   const canExtractPalette = Boolean(image) && !isProcessing && (paletteSource === "original" || Boolean(removal));
   const cutoutSrc = removal ? cutoutPreviewUrl(removal.cutoutPath) : undefined;
@@ -262,9 +333,38 @@ export function App() {
           onExtractPalette={() => void handleExtractPalette()}
           onExportPalette={(format) => void handleExportPalette(format)}
           onExportPaletteImage={() => void handleExportPaletteImage()}
+          photoroomLicense={photoroomLicense}
+          canRemoveBackgroundCloud={canRemoveBackgroundCloud}
+          onRemoveBackgroundCloud={() => void handleRemoveBackgroundCloud()}
+          onSavePhotoroomLicense={(code) => void handleSavePhotoroomLicense(code)}
         />
       </div>
       {toast && <Toast tone={toast.tone} message={toast.message} onDismiss={() => setToast(null)} />}
+      {cloudNotice && (
+        <Modal
+          title={cloudNotice.title}
+          onDismiss={() => setCloudNotice(null)}
+          actions={
+            <>
+              <button className="button button--quiet" type="button" onClick={() => setCloudNotice(null)}>
+                Close
+              </button>
+              <button
+                className="button button--primary"
+                type="button"
+                onClick={() => {
+                  setCloudNotice(null);
+                  void handleRemoveBackground();
+                }}
+              >
+                Use local removal instead
+              </button>
+            </>
+          }
+        >
+          <p>{cloudNotice.message}</p>
+        </Modal>
+      )}
       <StatusBar image={image} status={operationStatus} message={message} />
     </div>
   );
