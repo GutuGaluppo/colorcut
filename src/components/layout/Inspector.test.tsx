@@ -79,19 +79,13 @@ describe("Inspector", () => {
     expect(screen.getByRole("button", { name: /remove background/i })).toBeEnabled();
   });
 
-  it("shows a processing label while removal is running", () => {
-    renderInspector({ image: asset, isProcessing: true });
-    expect(screen.getByText(/removing background/i)).toBeInTheDocument();
-  });
-
   it("does not show the view mode toggle before a removal exists", () => {
     renderInspector({ image: asset, canRemoveBackground: true });
     expect(screen.queryByRole("group", { name: "Preview mode" })).not.toBeInTheDocument();
   });
 
-  it("shows the view mode toggle and processing time once removal succeeds", () => {
+  it("shows the view mode toggle once removal succeeds", () => {
     renderInspector({ image: asset, removal, viewMode: "cutout" });
-    expect(screen.getByText(/done in 342 ms/i)).toBeInTheDocument();
     const modes = within(screen.getByRole("group", { name: "Preview mode" }));
     expect(modes.getByRole("button", { name: "Cutout" })).toHaveAttribute("aria-pressed", "true");
     expect(modes.getByRole("button", { name: "Original" })).toBeInTheDocument();
@@ -138,14 +132,14 @@ describe("Inspector", () => {
 
   it("disables the cloud cutout action without an image", () => {
     renderInspector();
-    expect(screen.getByRole("button", { name: /cloud cutout/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /remove with photoroom/i })).toBeDisabled();
   });
 
   it("calls onRemoveBackgroundCloud when the cloud cutout action is clicked", () => {
     const onRemoveBackgroundCloud = vi.fn();
     renderInspector({ image: asset, canRemoveBackgroundCloud: true, onRemoveBackgroundCloud });
 
-    fireEvent.click(screen.getByRole("button", { name: /cloud cutout/i }));
+    fireEvent.click(screen.getByRole("button", { name: /remove with photoroom/i }));
     expect(onRemoveBackgroundCloud).toHaveBeenCalledTimes(1);
   });
 
@@ -157,6 +151,31 @@ describe("Inspector", () => {
   it("shows the license is saved once photoroomLicense reports one", () => {
     renderInspector({ photoroomLicense: { hasLicense: true } });
     expect(screen.getByText("License saved on this device.")).toBeInTheDocument();
+  });
+
+  it("replaces the input with a saved indicator once a license exists, and Edit License brings the input back", () => {
+    renderInspector({ photoroomLicense: { hasLicense: true } });
+
+    expect(screen.queryByLabelText("ColorCut Pro license")).not.toBeInTheDocument();
+    expect(screen.getByText("License saved")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit License" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit License" }));
+
+    expect(screen.getByLabelText("ColorCut Pro license")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+  });
+
+  it("hides the license code by default and reveals it via the toggle", () => {
+    renderInspector();
+    const input = screen.getByLabelText("ColorCut Pro license") as HTMLInputElement;
+    expect(input).toHaveAttribute("type", "password");
+
+    fireEvent.click(screen.getByRole("button", { name: /show license code/i }));
+    expect(input).toHaveAttribute("type", "text");
+
+    fireEvent.click(screen.getByRole("button", { name: /hide license code/i }));
+    expect(input).toHaveAttribute("type", "password");
   });
 
   it("calls onSavePhotoroomLicense with the trimmed license code", () => {

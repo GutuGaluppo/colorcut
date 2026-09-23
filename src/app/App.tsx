@@ -284,11 +284,13 @@ export function App() {
       />
       <TopBar
         canRemoveBackground={canRemoveBackground}
+        canRemoveBackgroundCloud={canRemoveBackgroundCloud}
         canExtractPalette={canExtractPalette}
         canExport={canExport}
         onOpen={() => fileInputRef.current?.click()}
         onPaste={() => void handlePaste()}
         onRemoveBackground={() => void handleRemoveBackground()}
+        onRemoveBackgroundCloud={() => void handleRemoveBackgroundCloud()}
         onExtractPalette={() => void handleExtractPalette()}
         onExport={() => void handleExport()}
       />

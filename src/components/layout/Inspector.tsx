@@ -1,4 +1,4 @@
-import { Cloud, Palette, Scissors, Sparkles } from "lucide-react";
+import { Check, Cloud, Eye, EyeOff, Palette, Scissors, Sparkles } from "lucide-react";
 import { useState } from "react";
 import type {
   ImageAsset,
@@ -78,11 +78,14 @@ export function Inspector({
   onSavePhotoroomLicense,
 }: InspectorProps) {
   const [licenseInput, setLicenseInput] = useState("");
+  const [showLicense, setShowLicense] = useState(false);
+  const [isEditingLicense, setIsEditingLicense] = useState(false);
+  const showLicenseInput = !photoroomLicense.hasLicense || isEditingLicense;
 
   return (
     <aside className="inspector" aria-label="Image inspector">
       <section className="inspector__section">
-        <span className="eyebrow">Image</span>
+        <span className="eyebrow">Image info</span>
         {image ? (
           <dl className="metadata">
             <div><dt>Name</dt><dd title={image.fileName}>{image.fileName}</dd></div>
@@ -97,14 +100,7 @@ export function Inspector({
       <section className="inspector__section">
         <div className="section-heading"><Scissors size={17} /><h2>Cutout</h2></div>
         <button className="action-card" type="button" disabled={!canRemoveBackground} onClick={onRemoveBackground}>
-          <span><Sparkles size={18} /> {isProcessing ? "Removing background…" : "Remove background"}</span>
-          <small>
-            {isProcessing
-              ? "Local processing · this can take a few seconds"
-              : removal
-                ? `Done in ${removal.processingTimeMs} ms · local processing`
-                : "Local processing"}
-          </small>
+          <span><Sparkles size={18} /> Remove background</span>
         </button>
 
         <button
@@ -113,31 +109,50 @@ export function Inspector({
           disabled={!canRemoveBackgroundCloud}
           onClick={onRemoveBackgroundCloud}
         >
-          <span><Cloud size={18} /> {isProcessing ? "Cloud processing…" : "Cloud cutout (Photoroom)"}</span>
-          <small>
-            {photoroomLicense.hasLicense
-              ? "Uses your Pro license · sends this image to Photoroom · needs internet"
-              : "Pro feature — add a license below · sends this image to Photoroom · needs internet"}
-          </small>
+          <span><Cloud size={18} /> Remove with Photoroom</span>
         </button>
 
         <div className="license-field">
           <label htmlFor="photoroom-license">ColorCut Pro license</label>
           <div className="license-field__row">
-            <input
-              id="photoroom-license"
-              type="text"
-              placeholder="Paste your license code"
-              value={licenseInput}
-              onChange={(event) => setLicenseInput(event.target.value)}
-            />
+            {showLicenseInput ? (
+              <div className="license-field__input-wrap">
+                <input
+                  id="photoroom-license"
+                  type={showLicense ? "text" : "password"}
+                  placeholder="Paste your license code"
+                  value={licenseInput}
+                  onChange={(event) => setLicenseInput(event.target.value)}
+                />
+                <button
+                  className="license-field__toggle"
+                  type="button"
+                  onClick={() => setShowLicense((value) => !value)}
+                  aria-label={showLicense ? "Hide license code" : "Show license code"}
+                >
+                  {showLicense ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+            ) : (
+              <div className="license-field__saved">
+                <Check size={16} /> License saved
+              </div>
+            )}
             <button
               className="button button--quiet"
               type="button"
-              disabled={!licenseInput.trim()}
-              onClick={() => onSavePhotoroomLicense(licenseInput.trim())}
+              disabled={showLicenseInput && !licenseInput.trim()}
+              onClick={() => {
+                if (showLicenseInput) {
+                  onSavePhotoroomLicense(licenseInput.trim());
+                  setLicenseInput("");
+                  setIsEditingLicense(false);
+                } else {
+                  setIsEditingLicense(true);
+                }
+              }}
             >
-              Save
+              {showLicenseInput ? "Save" : "Edit License"}
             </button>
           </div>
           <p className="license-field__status">
