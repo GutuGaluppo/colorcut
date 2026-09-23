@@ -384,23 +384,25 @@ Exit: a clean checkout can build a distributable macOS bundle.
 
 Not part of the MVP; an explicit, scoped exception to the local-first non-negotiable rule, approved by the product owner. See `docs/DECISIONS.md` ADR-014 for the full decision, reasoning, and pricing.
 
-**Owner actions (outside this repo, prerequisite to the app work below):**
+**Owner actions (outside this repo, prerequisite to the app work below):** step-by-step commands and exact contract live in `cloudflare-worker/README.md`; the Worker source is `cloudflare-worker/src/index.ts` (done — see status below).
 
-1. Pick and set up the payment platform for credit-pack sales (Lemonsqueezy recommended for its license-validation API) and create the 50/100/250-credit products at $1.99/$3.29/$7.19.
-2. Create the Cloudflare account/Worker project and a KV namespace for credit balances.
-3. Write and deploy the Worker: receives an image + license code, validates the code against the payment platform's license API, checks/decrements the KV credit balance, forwards the image to `https://sdk.photoroom.com/v1/segment` (`format=png&channels=rgba&size=full&crop=false`) using the real Photoroom key (provisioned as a `wrangler secret`, never committed), and streams the resulting PNG straight back — no logging or storage of the image at any step.
-4. Set a spend cap/budget alert on the Photoroom key from the Photoroom dashboard (defense in depth, not a substitute for the Worker's own credit check).
-5. Smoke-test the Worker directly (valid code + credit, invalid code, zero credit, Photoroom down) before wiring the app to it.
+1. Get a production Photoroom API key (billing enabled, not `sandbox_sk_pr_...`) and look for a spend-cap/budget-alert setting on it — `cloudflare-worker/README.md` §1.
+2. Deploy the Worker to Cloudflare: create the `LICENSES` KV namespace, set `PHOTOROOM_API_KEY` as a Worker secret, `wrangler deploy` — `cloudflare-worker/README.md` §2.
+3. Issue license codes manually for now (`wrangler kv key put`, no payment-platform integration yet — see the README's note on why that's an acceptable MVP shortcut).
+4. Smoke-test the Worker directly with `curl` (valid code + credit, invalid code, zero credit) before wiring the app to it — `cloudflare-worker/README.md` §2.6.
+5. Update `PHOTOROOM_PROXY_URL` in `src-tauri/src/lib.rs` from its placeholder to the real deployed Worker URL.
 
-**App work (this repo):**
+**App work (this repo) — done:**
 
-6. Add a Tauri network capability scoped to the Worker's domain only (`src-tauri/capabilities/`).
-7. Add `PhotoroomRemovalService` in Rust (`src-tauri/src/services/`), same typed-DTO success/error pattern as `BackgroundRemovalService`, calling the Worker (not Photoroom directly) and mapping its error responses (invalid license, no credit, network/Worker/Photoroom unreachable) to stable command errors.
-8. Add the `remove_background_cloud`, `set_photoroom_license`, and `get_photoroom_license_status` Tauri commands (§11), thin per the existing convention.
-9. Add a Settings surface for the user to paste their license code (stored locally as a plain config value — it identifies a purchase, it is not a secret that needs keychain-grade protection).
-10. Add a separate, explicitly-labeled "Cloud cutout" action next to the existing local "Remove background" button; never substitutes for it.
-11. Add the offline/unreachable explanatory modal: an instant `navigator.onLine` check for immediate feedback, plus handling the request's own network-class failures the same way (since `navigator.onLine` misses cases like a captive portal), with a "use local removal instead" action. Distinguish this from a "Worker/Photoroom is down" error, which is a different message (see ADR-014 caveats).
-12. Add the no-credit / invalid-license states (idle/disabled/processing/success/error, matching §9's pattern) with a link to buy more credits.
+6. ~~Add a Tauri network capability scoped to the Worker's domain~~ — turned out to be unnecessary: the call happens entirely in Rust (`reqwest`, inside `PhotoroomRemovalService`), never through the webview-exposed `http` plugin, so Tauri's capability/ACL system (which only gates plugin-exposed and JS-invokable surfaces) never comes into play. No capability file was touched.
+7. `PhotoroomRemovalService` in Rust (`src-tauri/src/services/photoroom_removal_service.rs`), same typed-DTO pattern as `BackgroundRemovalService`, calling the Worker and mapping its responses to a structured `PhotoroomCloudError` (`src-tauri/src/models/photoroom_cloud_error.rs`) with a `kind` field the frontend branches on, not a bare string.
+8. `remove_background_cloud`, `set_photoroom_license`, `get_photoroom_license_status` Tauri commands (§11) — `src-tauri/src/commands/photoroom.rs`.
+9. Settings surface: a "ColorCut Pro license" field in the Inspector's Cutout section (not a separate window, per the single-window rule), storing the code as a plain local config value.
+10. A separate, explicitly-labeled "Cloud cutout (Photoroom)" action-card next to the local "Remove background" one; never substitutes for it.
+11. Offline/unreachable modal (`src/components/ui/Modal.tsx`): instant `navigator.onLine` check plus the request's own network-class failure mapped to the same modal, with a "use local removal instead" action that closes the modal and runs local removal. A Worker/Photoroom-side failure (`kind: "unavailable"`) shows the same modal component with different copy, per ADR-014's caveat that the two are distinguishable failures.
+12. No-credit / invalid-license / missing-license errors surface through the existing Toast, using the specific message from the Rust error (not a generic fallback).
+
+**Status (2026-09-23):** steps 6–12 are implemented and covered by `cargo test`/`pnpm test`, manually smoke-tested in `pnpm tauri dev` (license save/status, and the offline modal with Wi-Fi off). Steps 1–5 are still open — the Worker code exists (`cloudflare-worker/`) but has not been deployed, so `PHOTOROOM_PROXY_URL` is still the placeholder and any real cloud-cutout attempt fails with a network/unavailable error by design.
 
 Exit: a user with a valid license and credit balance can produce a cloud cutout end-to-end (button → Worker → Photoroom → transparent PNG in the preview), offline/no-credit/invalid-license all produce clear recoverable-error UI, and local removal is provably unaffected (existing Rust/frontend test suites still pass unchanged).
 
@@ -449,7 +451,7 @@ This list describes the shipped 1.0.0 MVP and is not retroactively changed by Ph
 
 All MVP phases (§14, Phases 0–5) and the definition of done (§15) are complete and verified for 1.0.0. Release-gate work (`docs/RELEASE_CHECKLIST.md` §§1, 6, and 7) is separately tracked and still needs a human decision or Apple credentials an agent can't supply.
 
-The active feature work is **Phase 6 — Photoroom cloud cutout** (§14), approved in `docs/DECISIONS.md` ADR-014. The owner-side prerequisites (payment platform, Cloudflare Worker + KV, Photoroom production key) are steps 1–5 of that phase and are not agent-automatable. Steps 6–12 (Tauri capability, `PhotoroomRemovalService`, commands, Settings license field, cloud button, offline/error modals) are in progress against a placeholder Worker URL until the real one exists.
+The active feature work is **Phase 6 — Photoroom cloud cutout** (§14), approved in `docs/DECISIONS.md` ADR-014. Steps 6–12 (app-side: `PhotoroomRemovalService`, commands, Settings license field, cloud button, offline/error modals) are implemented, tested, and manually smoke-tested — see the Phase 6 status note. What's left is steps 1–5: getting a production Photoroom key, deploying `cloudflare-worker/` to Cloudflare, and pointing `PHOTOROOM_PROXY_URL` (`src-tauri/src/lib.rs`) at the real Worker URL. These need the owner's own Photoroom/Cloudflare accounts and are not agent-automatable; `cloudflare-worker/README.md` has the exact commands.
 
 Any new feature work from here (e.g. a stronger background-removal model, manual touch-up tools, batch processing) is post-MVP scope per `AGENTS.md` non-goals and needs an explicit product decision before starting.
 

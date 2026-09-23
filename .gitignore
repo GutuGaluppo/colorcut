@@ -21,3 +21,5 @@ Images_QA/
 /color_palette_detector/
 /QA_MANULA_RESULT/
 .claude/
+cloudflare-worker/.wrangler/
+cloudflare-worker/.dev.vars
