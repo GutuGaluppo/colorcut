@@ -136,3 +136,48 @@ Record accepted decisions here. Keep entries short and append-only.
 - Marking a `1.0.0` release as a GitHub pre-release is intentional: clear the flag when a signed and notarized build replaces it.
 - `THIRD_PARTY_NOTICES.md` is a generated best-effort listing, not per-crate full license text; the `isnet-general-use` attribution rests on this repo's own records (`docs/MODEL_NOTES.md`, ADR-005) and the `rembg` distribution page, not on a separately reviewed upstream NOTICE file. Verify both before a wide public release, or generate full-text attribution with `cargo about`.
 - Revisit the whole decision if an Apple Developer ID becomes available: follow `docs/RELEASE_CHECKLIST.md` §6b and drop the pre-release flag.
+
+## ADR-014 — Photoroom cloud cutout as a paid, opt-in add-on to local removal
+
+**Status:** Accepted (2026-09-23), approved by product owner. This is an explicit, scoped exception to `AGENTS.md`'s non-negotiable "local processing by default; no cloud API, upload, account, or telemetry" rule — see Reason below for why it is scoped the way it is. `AGENTS.md`'s "Scope requiring explicit approval" list (cloud/third-party processing; accounts) is the reason this needed an ADR rather than a normal implementation task.
+
+**Decision:**
+
+Add a second, clearly separate background-removal path that calls the Photoroom Remove Background API (`POST https://sdk.photoroom.com/v1/segment`, `format=png&channels=rgba&size=full&crop=false` — the same endpoint and parameters validated in the standalone `scripts/photoroom-benchmark.sh` spike), gated as follows:
+
+- **Local removal (`isnet-general-use`, ADR-005) stays the free, default, always-available path.** Nothing about the existing offline flow changes.
+- The Photoroom path is a **separate, explicitly-labeled button/action** ("Cloud cutout" or similar — final copy is a UI-slice decision), never silently substituted for the local one, so the product stays honest about which images leave the device.
+- **One API key, owned and paid for by the product owner, embedded at build time** (injected via a build-time environment variable into a compiled Rust constant — never committed to git, never placed in a runtime-editable file). The renderer never sees this key; the call is made from a new `PhotoroomRemovalService` in Rust, behind the same typed-DTO service boundary as `BackgroundRemovalService`.
+- **Gated to paying users via a locally-verified, offline-checkable license code — not an account system.** The owner sells a one-time "cloud credit pack" (a fixed count of Photoroom calls) through a merchant-of-record payment platform (e.g. Lemonsqueezy, Paddle, or Gumroad — pick one at implementation time based on current fees/terms). The purchase delivers a signed code the user pastes into the app once; the app verifies the signature with a public key baked into the binary and decrements a locally-stored credit counter per successful cloud call. No server of ours, no user accounts, no telemetry — consistent with the rest of `AGENTS.md` even though the cloud call itself is not local.
+- **Sold as metered credit packs, not a subscription or unlimited unlock.** Photoroom bills the owner per call with no way to meter individual end users server-side (telemetry is off the table), so an unlimited-usage price would be open-ended liability against a leaked or overused key. A fixed credit count bounds the owner's downside per sale.
+- New Tauri network capability scoped to `sdk.photoroom.com` only (least privilege, per `AGENTS.md` security section) — the first network permission this app has ever requested.
+- **Offline/unreachable handling:** clicking the cloud button first does a cheap `navigator.onLine` check for instant feedback, and separately treats the actual request's network-class failures (timeout, DNS, connection refused) the same way, since `navigator.onLine` alone is not reliable (e.g. captive portals). Either path shows an explanatory modal — this feature requires internet, unlike local removal — with a "use local removal instead" action, reusing the existing recoverable-error UI pattern from `IMPLEMENTATION.md` §9.
+
+**Reason:**
+
+The standalone Photoroom benchmark (13→36 images from the `Images_QA/` manual QA set, same categories as ADR-005's local-model benchmark) showed decisively better results than `isnet-general-use` on exactly the cases ADR-005 flagged as weak or unresolved: dark-on-dark subjects, fine hair/flyaway strands, multi-instance scenes (several disconnected objects in one frame), and translucent/reflective subjects (glass, pouring liquid) — all inspected by compositing the real alpha channel over a checkerboard, not just eyeballing the raw PNG. This closes real, previously-accepted gaps (see the "plain-white-garment" limitation noted in ADR-005) without touching the local model or its known-good cases.
+
+Making it free-and-embedded (the option explored before this ADR) would mean the owner pays Photoroom for every user's every click with no revenue offset — the "no telemetry" rule blocks any server-side usage cap, so cost exposure would be unbounded. Gating behind a paid, metered credit pack keeps the owner's worst case bounded (at most the credits sold, times the per-call cost) while still avoiding the two heavier alternatives: building real user accounts (explicitly out of scope per `AGENTS.md`) or running our own license-validation server (adds infrastructure this one-person, no-backend project doesn't otherwise need). A self-contained signed license code checked locally was chosen specifically because it requires neither.
+
+**Pricing (baseline math, verify both inputs before shipping):**
+
+Photoroom's Basic plan ("Remove Background" API, the same `/v1/segment` endpoint used here) is billed at **$0.02/image** past the first 10 free production calls (checked against `docs.photoroom.com/api/pricing` on 2026-09-23 — **re-verify at implementation time**, published API pricing can change). Assuming an illustrative merchant-of-record fee of ~5% + $0.50/transaction (Lemonsqueezy/Paddle-style — **re-verify against the actually chosen platform's current terms**) and a 10% buffer on the raw per-image cost (covers retries/failed calls that may still consume a Photoroom credit, plus rounding), the formula used is:
+
+```
+buffered_cost = credits × $0.02 × 1.10
+price × (1 − fee_%) − fixed_fee = buffered_cost × 1.15   (≈15% margin over buffered cost)
+```
+
+| Pack | Buffered cost | Suggested price | Net after MoR fee | Profit | Margin over buffered cost |
+| --- | --- | --- | --- | --- | --- |
+| 50 credits | $1.10 | **$1.99** | $1.39 | ~$0.29 | ~26% |
+| 100 credits (recommended default) | $2.20 | **$3.29** | $2.63 | ~$0.43 | ~19% |
+| 250 credits | $5.50 | **$7.19** | $6.33 | ~$0.83 | ~15% |
+
+This is deliberately thin margin, matching "don't lose money, minimal profit" rather than market-rate pricing — it is a cost-recovery mechanism for an already-shipped free product, not a profit center. The 50-credit pack carries relatively more margin only because the platform's flat per-transaction fee doesn't shrink at small sizes; if that's undesirable, drop it and start at 100.
+
+**Caveats to revisit:**
+- **Key-extraction risk is accepted, not solved.** ADR-013 already commits this app to unsigned, non-notarized distribution, so a build-time-embedded key is recoverable from the binary by a motivated user (`strings` or a disassembler). Mitigations are both outside the app, not real protection: (1) set a spend cap/budget alert on the Photoroom key from the Photoroom dashboard, (2) treat the local per-license credit counter as friction, not security. Revisit if actual abuse is observed (e.g. rotate the key, or move to a thin validation server if the cost of that infrastructure becomes justified).
+- The signed-license verification mechanism (keypair generation, signing tool, and the exact on-disk format for the local credit counter) is an implementation detail not yet designed — needs its own pass before coding starts, including how a counter tamper/reset (e.g. deleting app support files to "refill" credits) is weighed against just accepting it as a cost of avoiding server infrastructure.
+- This ADR does not itself edit `AGENTS.md`'s non-negotiable rule text or `IMPLEMENTATION.md` §12 (privacy) — both still read as pure local-first/no-cloud/no-accounts. They need a follow-up edit carving out this one named exception before implementation starts, since `AGENTS.md` is the shared contract with Codex and should not silently drift out of sync with an accepted ADR.
+- Pricing inputs (Photoroom's per-image rate, the chosen payment platform's fee structure) are point-in-time research from this ADR's date — reconfirm both immediately before launch pricing is finalized, not just before writing the checkout integration.
