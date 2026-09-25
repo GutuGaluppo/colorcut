@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f7f8fa" />
+    <title data-i18n="meta.title">ColorCut — recorte de fundo e paletas de cores no seu Mac</title>
+    <meta name="description" data-i18n-attr="content:meta.description" content="ColorCut remove fundos de imagens e extrai paletas de cores localmente no macOS. Sem upload, sem conta, sem telemetria." />
+    <meta property="og:title" content="ColorCut — palette + cutout utility" />
+    <meta property="og:image" content="assets/app/06-palette-subject.webp?v=2" />
+    <link rel="icon" type="image/png" href="assets/brand/favicon-32.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header">
+      <div class="container site-header__inner">
+        <a class="brand" href="#top" aria-label="ColorCut">
+          <img src="assets/brand/icon-256.png" width="36" height="36" alt="" />
+          <span class="brand__text">
+            <strong>ColorCut</strong>
+            <small>palette + cutout utility</small>
+          </span>
+        </a>
+        <nav class="site-nav" aria-label="Primary">
+          <a href="#features" data-i18n="nav.features">Recursos</a>
+          <a href="#examples" data-i18n="nav.examples">Exemplos</a>
+          <a href="#palettes" data-i18n="nav.palettes">Paletas</a>
+          <a href="#privacy" data-i18n="nav.privacy">Privacidade</a>
+          <a href="#faq" data-i18n="nav.faq">Dúvidas</a>
+        </nav>
+        <div class="site-header__actions">
+          <div class="lang-switch" role="group" data-i18n-attr="aria-label:lang.label" aria-label="Idioma">
+            <button type="button" data-lang="pt-BR" lang="pt-BR">PT</button>
+            <button type="button" data-lang="en" lang="en">EN</button>
+            <button type="button" data-lang="es" lang="es">ES</button>
+            <button type="button" data-lang="de" lang="de">DE</button>
+          </div>
+          <a class="button button--primary button--sm" href="#download" data-i18n="nav.download">Baixar</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- Hero -->
+      <section class="hero" id="top">
+        <div class="container hero__inner">
+          <div class="hero__copy">
+            <p class="eyebrow"><span class="dot dot--green" aria-hidden="true"></span><span data-i18n="hero.eyebrow">Utilitário de recorte + paleta para macOS</span></p>
+            <h1 data-i18n="hero.title">Tire o fundo. Fique com as cores.</h1>
+            <p class="lead" data-i18n="hero.lead">O ColorCut remove o fundo de fotos e extrai paletas prontas para usar — tudo processado no seu Mac, sem enviar nenhuma imagem para a nuvem.</p>
+            <div class="hero__actions">
+              <a class="button button--primary" href="#download">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 19h16" /></svg>
+                <span data-i18n="hero.cta">Baixar para macOS</span>
+              </a>
+              <a class="button button--ghost" href="#demo">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" /></svg>
+                <span data-i18n="hero.secondary">Ver em ação</span>
+              </a>
+            </div>
+            <p class="hero__meta" data-i18n="hero.meta">Grátis · Apple Silicon · macOS 11 ou superior</p>
+          </div>
+          <figure class="window hero__window">
+            <div class="window__bar" aria-hidden="true"><i></i><i></i><i></i><span>ColorCut</span></div>
+            <img src="assets/app/06-palette-subject.webp?v=2" width="1920" height="1158" data-i18n-attr="alt:hero.alt" alt="Janela do ColorCut comparando a foto original e o recorte com um controle deslizante" fetchpriority="high" />
+            <figcaption class="hero__badge"><span class="dot dot--green" aria-hidden="true"></span><span data-i18n="hero.badge">Processado localmente</span></figcaption>
+          </figure>
+        </div>
+        <div class="hero__stripe" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      </section>
+
+      <!-- Demo GIF -->
+      <section class="section" id="demo">
+        <div class="container">
+          <header class="section__head">
+            <p class="kicker" data-i18n="demo.kicker">Em movimento</p>
+            <h2 data-i18n="demo.title">Do arquivo à paleta em segundos</h2>
+            <p class="section__lead" data-i18n="demo.lead">Abra uma imagem, remova o fundo, compare com o slider e extraia a paleta do assunto recortado.</p>
+          </header>
+          <ol class="demo-steps">
+            <li><span>1</span><b data-i18n="demo.step1">Abrir</b></li>
+            <li><span>2</span><b data-i18n="demo.step2">Remover fundo</b></li>
+            <li><span>3</span><b data-i18n="demo.step3">Comparar</b></li>
+            <li><span>4</span><b data-i18n="demo.step4">Extrair paleta</b></li>
+          </ol>
+          <figure class="window window--wide">
+            <div class="window__bar" aria-hidden="true"><i></i><i></i><i></i><span>ColorCut</span></div>
+            <picture>
+              <source srcset="assets/app/colorcut-demo.webp?v=2" type="image/webp" />
+              <img src="assets/app/colorcut-demo.gif" width="1020" height="615" loading="lazy" data-i18n-attr="alt:demo.alt" alt="Animação do ColorCut" />
+            </picture>
+          </figure>
+        </div>
+      </section>
+
+      <!-- Features -->
+      <section class="section section--soft" id="features">
+        <div class="container">
+          <header class="section__head">
+            <p class="kicker" data-i18n="feat.kicker">Feito para duas tarefas</p>
+            <h2 data-i18n="feat.title">Pequeno, preciso e rápido</h2>
+            <p class="section__lead" data-i18n="feat.lead">Nada de editor genérico.</p>
+          </header>
+          <div class="features">
+            <article class="feature" style="--accent: var(--blue)">
+              <div class="feature__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12" /></svg></div>
+              <h3 data-i18n="feat.1.title">Recorte local com IA</h3>
+              <p data-i18n="feat.1.body"></p>
+            </article>
+            <article class="feature" style="--accent: var(--cyan)">
+              <div class="feature__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3" /><path d="M12 4v16" /><circle cx="12" cy="12" r="2.2" /></svg></div>
+              <h3 data-i18n="feat.2.title">Compare sem sair da janela</h3>
+              <p data-i18n="feat.2.body"></p>
+            </article>
+            <article class="feature" style="--accent: var(--green)">
+              <div class="feature__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.8-.9 1.8-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8Z" /><circle cx="7.5" cy="11" r="1" /><circle cx="10" cy="7" r="1" /><circle cx="15" cy="7.5" r="1" /></svg></div>
+              <h3 data-i18n="feat.3.title">Paleta do original ou do assunto</h3>
+              <p data-i18n="feat.3.body"></p>
+            </article>
+            <article class="feature" style="--accent: var(--yellow)">
+              <div class="feature__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18" /></svg></div>
+              <h3 data-i18n="feat.4.title">Valores técnicos prontos</h3>
+              <p data-i18n="feat.4.body"></p>
+            </article>
+            <article class="feature" style="--accent: var(--coral)">
+              <div class="feature__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 19h16" /></svg></div>
+              <h3 data-i18n="feat.5.title">Exportações úteis</h3>
+              <p data-i18n="feat.5.body"></p>
+            </article>
+            <article class="feature" style="--accent: var(--blue)">
+              <div class="feature__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="2.5" /><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10" /></svg></div>
+              <h3 data-i18n="feat.6.title">Abrir, colar ou arrastar</h3>
+              <p data-i18n="feat.6.body"></p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Before / after -->
+      <section class="section" id="examples">
+        <div class="container">
+          <header class="section__head">
+            <p class="kicker" data-i18n="ba.kicker">Antes e depois</p>
+            <h2 data-i18n="ba.title">Resultados reais do recorte local</h2>
+            <p class="section__lead" data-i18n="ba.lead"></p>
+          </header>
+
+          <div class="ba">
+            <div class="ba__tabs" role="tablist" id="ba-tabs"></div>
+            <div class="ba__stage" id="ba-stage" data-bg="checker">
+              <img class="ba__img ba__img--after" id="ba-after" alt="" />
+              <div class="ba__before" id="ba-before-wrap">
+                <img class="ba__img" id="ba-before" alt="" />
+              </div>
+              <div class="ba__handle" id="ba-handle" aria-hidden="true"><span></span></div>
+              <span class="ba__label ba__label--before" data-i18n="ba.before">Antes</span>
+              <span class="ba__label ba__label--after" data-i18n="ba.after">Depois</span>
+              <input class="ba__range" id="ba-range" type="range" min="0" max="100" value="50" data-i18n-attr="aria-label:ba.slider" aria-label="Comparação" />
+            </div>
+            <div class="ba__footer">
+              <p class="ba__time"><span class="dot dot--green" aria-hidden="true"></span><span id="ba-time"></span></p>
+              <div class="segmented" role="group" data-i18n-attr="aria-label:ba.bg" aria-label="Fundo" id="ba-bg">
+                <button type="button" data-bg="checker" aria-pressed="true" data-i18n="ba.bg.checker">Xadrez</button>
+                <button type="button" data-bg="white" aria-pressed="false" data-i18n="ba.bg.white">Branco</button>
+                <button type="button" data-bg="black" aria-pressed="false" data-i18n="ba.bg.black">Preto</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Palettes -->
+      <section class="section section--soft" id="palettes">
+        <div class="container">
+          <header class="section__head">
+            <p class="kicker" data-i18n="pal.kicker">Extração de paleta</p>
+            <h2 data-i18n="pal.title">Cores que realmente estão na imagem</h2>
+            <p class="section__lead" data-i18n="pal.lead"></p>
+          </header>
+          <div class="segmented segmented--center" role="group" id="pal-source" data-i18n-attr="aria-label:pal.source" aria-label="Fonte">
+            <button type="button" data-source="original" aria-pressed="true" data-i18n="pal.original">Imagem original</button>
+            <button type="button" data-source="subject" aria-pressed="false" data-i18n="pal.subject">Só o assunto</button>
+          </div>
+          <p class="pal-hint" data-i18n="pal.hint">Clique numa cor para copiar o HEX</p>
+          <div class="palettes" id="palettes-grid"></div>
+        </div>
+      </section>
+
+      <!-- Screenshots -->
+      <section class="section" id="screens">
+        <div class="container">
+          <header class="section__head">
+            <p class="kicker" data-i18n="shots.kicker">Por dentro do app</p>
+            <h2 data-i18n="shots.title">Uma janela, tudo à mão</h2>
+            <p class="section__lead" data-i18n="shots.lead">Capturas da interface real do ColorCut 1.0.</p>
+          </header>
+          <div class="shots">
+            <figure class="shot"><button type="button" class="shot__open"><img src="assets/app/01-empty.webp?v=2" loading="lazy" width="1920" height="1158" alt="" /></button><figcaption data-i18n="shots.1"></figcaption></figure>
+            <figure class="shot"><button type="button" class="shot__open"><img src="assets/app/04-cutout.webp?v=2" loading="lazy" width="1920" height="1158" alt="" /></button><figcaption data-i18n="shots.2"></figcaption></figure>
+            <figure class="shot"><button type="button" class="shot__open"><img src="assets/app/07-side-by-side.webp?v=2" loading="lazy" width="1920" height="1158" alt="" /></button><figcaption data-i18n="shots.3"></figcaption></figure>
+            <figure class="shot"><button type="button" class="shot__open"><img src="assets/app/06b-palette-inspector.webp?v=2" loading="lazy" width="1920" height="1158" alt="" /></button><figcaption data-i18n="shots.4"></figcaption></figure>
+            <figure class="shot"><button type="button" class="shot__open"><img src="assets/app/08-product-white.webp?v=2" loading="lazy" width="1920" height="1158" alt="" /></button><figcaption data-i18n="shots.5"></figcaption></figure>
+            <figure class="shot"><button type="button" class="shot__open"><img src="assets/app/09-landscape-palette.webp?v=2" loading="lazy" width="1920" height="1158" alt="" /></button><figcaption data-i18n="shots.6"></figcaption></figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- Steps -->
+      <section class="section section--soft" id="how">
+        <div class="container">
+          <header class="section__head">
+            <p class="kicker" data-i18n="steps.kicker">Como funciona</p>
+            <h2 data-i18n="steps.title">Três passos</h2>
+          </header>
+          <ol class="steps">
+            <li class="step"><span class="step__n" style="--accent: var(--blue)">1</span><h3 data-i18n="steps.1.title"></h3><p data-i18n="steps.1.body"></p></li>
+            <li class="step"><span class="step__n" style="--accent: var(--green)">2</span><h3 data-i18n="steps.2.title"></h3><p data-i18n="steps.2.body"></p></li>
+            <li class="step"><span class="step__n" style="--accent: var(--coral)">3</span><h3 data-i18n="steps.3.title"></h3><p data-i18n="steps.3.body"></p></li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- Privacy + Pro -->
+      <section class="section" id="privacy">
+        <div class="container privacy">
+          <div class="privacy__copy">
+            <p class="kicker" data-i18n="priv.kicker">Privacidade</p>
+            <h2 data-i18n="priv.title">Suas imagens ficam no seu Mac</h2>
+            <p class="section__lead" data-i18n="priv.lead"></p>
+            <ul class="checks">
+              <li data-i18n="priv.1"></li>
+              <li data-i18n="priv.2"></li>
+              <li data-i18n="priv.3"></li>
+              <li data-i18n="priv.4"></li>
+            </ul>
+          </div>
+          <div class="pro">
+            <span class="pill" data-i18n="pro.badge">Opcional</span>
+            <h3 data-i18n="pro.title">ColorCut Pro</h3>
+            <p data-i18n="pro.body"></p>
+            <div class="pro__compare">
+              <figure>
+                <div class="checker"><img src="assets/examples/averie-local.webp?v=2" loading="lazy" data-i18n-attr="alt:pro.alt.local" alt="" /></div>
+                <figcaption data-i18n="pro.local">Local (grátis)</figcaption>
+              </figure>
+              <figure>
+                <div class="checker"><img src="assets/examples/averie-after.webp?v=2" loading="lazy" data-i18n-attr="alt:pro.alt.cloud" alt="" /></div>
+                <figcaption data-i18n="pro.cloud">Photoroom (Pro)</figcaption>
+              </figure>
+            </div>
+            <p class="pro__note" data-i18n="pro.note"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="section section--soft" id="faq">
+        <div class="container container--narrow">
+          <header class="section__head">
+            <p class="kicker" data-i18n="faq.kicker">Dúvidas</p>
+            <h2 data-i18n="faq.title">Perguntas frequentes</h2>
+          </header>
+          <div class="faq">
+            <details><summary data-i18n="faq.1.q"></summary><p data-i18n="faq.1.a"></p></details>
+            <details><summary data-i18n="faq.2.q"></summary><p data-i18n="faq.2.a"></p></details>
+            <details><summary data-i18n="faq.3.q"></summary><p data-i18n="faq.3.a"></p></details>
+            <details><summary data-i18n="faq.4.q"></summary><p data-i18n="faq.4.a"></p></details>
+            <details><summary data-i18n="faq.5.q"></summary><p data-i18n="faq.5.a"></p></details>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <section class="cta" id="download">
+        <div class="container cta__inner">
+          <img src="assets/brand/icon-256.png" width="96" height="96" alt="" />
+          <h2 data-i18n="cta.title">Pronto para recortar?</h2>
+          <p data-i18n="cta.lead"></p>
+          <a class="button button--primary button--lg" href="https://github.com/GutuGaluppo/colorcut/releases/latest">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 19h16" /></svg>
+            <span data-i18n="cta.button">Baixar o ColorCut</span>
+          </a>
+          <p class="cta__note" data-i18n="cta.note">Versão 1.0 · DMG para Apple Silicon</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container site-footer__inner">
+        <div class="brand brand--small">
+          <img src="assets/brand/icon-256.png" width="24" height="24" alt="" />
+          <strong>ColorCut</strong>
+        </div>
+        <p class="site-footer__credits">
+          <span data-i18n="foot.credits">Fotos de exemplo do Unsplash por</span>
+          Averie Woodard, Irene Kredenets, Olena Bohovyk, Amber Visser, Freddie Marriage, Vinicius “amnx” Amano, Mahbod Akhzami, Anders Jildén.
+        </p>
+        <p class="site-footer__legal"><span data-i18n="foot.rights">© 2026 Gutu Galuppo.</span> <span data-i18n="foot.photoroom"></span></p>
+      </div>
+    </footer>
+
+    <dialog class="lightbox" id="lightbox">
+      <form method="dialog"><button class="lightbox__close" aria-label="Close">×</button></form>
+      <img id="lightbox-img" alt="" />
+      <p id="lightbox-caption"></p>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="i18n.js"></script>
+    <script src="main.js"></script>
+  </body>
+</html>

@@ -23,3 +23,5 @@ Images_QA/
 .claude/
 cloudflare-worker/.wrangler/
 cloudflare-worker/.dev.vars
+!landing/assets/**/*.png
+!landing/assets/**/*.webp
