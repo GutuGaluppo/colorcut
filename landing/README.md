@@ -8,6 +8,10 @@ python3 -m http.server 5310 --directory landing
 
 The language comes from `?lang=pt-BR|en|es|de`, then the last choice saved in `localStorage`, then the browser language, and falls back to English.
 
+## Deploy
+
+Published to GitHub Pages at https://gutugaluppo.github.io/colorcut/ by `.github/workflows/pages.yml` on every push to `master` that changes `landing/`. The workflow can also be run by hand from the Actions tab.
+
 ## Where the assets came from
 
 - `assets/app/*.webp`: screenshots of the real ColorCut 1.0 React UI (`pnpm dev`) in headless Chrome at 2x scale. Native commands were answered with results from the app's own Rust services, not with made-up data.
