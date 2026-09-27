@@ -1,6 +1,7 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import type {
   PaletteCount,
+  PaletteSize,
   PaletteResult,
   PaletteSource,
   PhotoroomLicenseStatus,
@@ -68,6 +69,32 @@ export async function extractPalette(
     count,
     cutoutPath,
   });
+}
+
+/// Auto size: native code tries each supported size, smallest first, and returns
+/// the first palette that reproduces the image within a just-noticeable difference.
+export async function extractPaletteAuto(
+  source: PaletteSource,
+  sourcePath?: string,
+  cutoutPath?: string,
+): Promise<PaletteResult> {
+  assertTauriRuntime();
+  return invoke<PaletteResult>("extract_palette_auto", {
+    sourcePath,
+    source,
+    cutoutPath,
+  });
+}
+
+export async function extractPaletteOfSize(
+  source: PaletteSource,
+  size: PaletteSize,
+  sourcePath?: string,
+  cutoutPath?: string,
+): Promise<PaletteResult> {
+  return size === "auto"
+    ? extractPaletteAuto(source, sourcePath, cutoutPath)
+    : extractPalette(source, size, sourcePath, cutoutPath);
 }
 
 export async function writeTextFile(contents: string, destinationPath: string): Promise<void> {

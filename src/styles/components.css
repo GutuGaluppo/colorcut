@@ -1154,3 +1154,24 @@
 		animation-iteration-count: 1 !important;
 	}
 }
+
+.palette-size-notes {
+	display: grid;
+	gap: 6px;
+	margin: -4px 0 14px;
+}
+
+.palette-size-notes p {
+	display: flex;
+	gap: 6px;
+	align-items: flex-start;
+	margin: 0;
+	color: var(--cc-text-secondary);
+	font-size: 11.5px;
+	line-height: 1.4;
+}
+
+.palette-size-notes svg {
+	flex: none;
+	margin-top: 1px;
+}

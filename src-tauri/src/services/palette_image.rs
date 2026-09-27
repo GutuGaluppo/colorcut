@@ -7,13 +7,13 @@ use crate::models::RgbColor;
 
 const STRIP_WIDTH: u32 = 960;
 const STRIP_HEIGHT: u32 = 160;
-const MAX_COLORS: usize = 16;
+const MAX_COLORS: usize = 48;
 
 #[derive(Debug, Error)]
 pub enum PaletteImageError {
     #[error("Extract a palette before exporting its image.")]
     EmptyPalette,
-    #[error("A palette image can contain at most 16 colors.")]
+    #[error("A palette image can contain at most 48 colors.")]
     TooManyColors,
     #[error("Choose a PNG destination for the palette image.")]
     UnsupportedFormat,
@@ -122,6 +122,24 @@ mod tests {
             render_strip(&[]),
             Err(PaletteImageError::EmptyPalette)
         ));
+    }
+
+    #[test]
+    fn renders_the_largest_supported_palette() {
+        let colors: Vec<RgbColor> = (0..MAX_COLORS as u8)
+            .map(|i| RgbColor {
+                r: i * 5,
+                g: 255 - i * 5,
+                b: 128,
+            })
+            .collect();
+        let image = render_strip(&colors).unwrap();
+        assert_eq!(image.width(), STRIP_WIDTH);
+        // The last swatch reaches the right edge.
+        assert_eq!(
+            image.get_pixel(STRIP_WIDTH - 1, 0).0,
+            [47 * 5, 255 - 47 * 5, 128]
+        );
     }
 
     #[test]

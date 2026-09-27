@@ -51,6 +51,7 @@ pub fn run() {
             commands::image_io::cache_source_image,
             commands::background_remove::remove_background,
             commands::palette_extract::extract_palette,
+            commands::palette_extract::extract_palette_auto,
             commands::export::export_cutout,
             commands::export::write_text_file,
             commands::export::export_palette_image,

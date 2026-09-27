@@ -199,6 +199,36 @@ describe("Inspector", () => {
     expect(screen.getByRole("option", { name: "Subject" })).toBeEnabled();
   });
 
+  it("offers Auto and palette sizes from 4 up to 48 colors", () => {
+    const onPaletteCountChange = vi.fn();
+    renderInspector({ image: asset, onPaletteCountChange });
+    const select = screen.getByLabelText("Colors");
+    const options = within(select).getAllByRole("option").map((option) => option.textContent);
+    expect(options).toEqual(["Auto", "4", "6", "8", "12", "16", "20", "24", "28", "32", "40", "48"]);
+    fireEvent.change(select, { target: { value: "48" } });
+    expect(onPaletteCountChange).toHaveBeenLastCalledWith(48);
+    fireEvent.change(select, { target: { value: "auto" } });
+    expect(onPaletteCountChange).toHaveBeenLastCalledWith("auto");
+  });
+
+  it("shows no size notes for small palettes", () => {
+    renderInspector({ image: asset, paletteCount: 16 });
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
+  });
+
+  it("warns about similar shades for palettes above 16 colors", () => {
+    renderInspector({ image: asset, paletteCount: 20 });
+    expect(screen.getByRole("note")).toHaveTextContent(/more likely the palette is to include very similar shades/);
+    expect(screen.getByRole("note")).not.toHaveTextContent(/Auto picks/);
+  });
+
+  it("explains Auto and keeps the similar-shades warning", () => {
+    renderInspector({ image: asset, paletteCount: "auto" });
+    const note = screen.getByRole("note");
+    expect(note).toHaveTextContent(/Auto picks the fewest colors \(up to 48\)/);
+    expect(note).toHaveTextContent(/very similar shades/);
+  });
+
   it("calls onExtractPalette when the action is clicked", () => {
     const onExtractPalette = vi.fn();
     renderInspector({ image: asset, canExtractPalette: true, onExtractPalette });

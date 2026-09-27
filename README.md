@@ -70,7 +70,7 @@ Local builds are unsigned unless an approved Apple signing identity and notariza
 - PNG/JPEG/WebP import through picker, drag-and-drop, and clipboard.
 - Local background removal using `isnet-general-use`, ONNX Runtime, and CoreML.
 - Original/cutout preview, comparison slider, side-by-side view, backgrounds, and zoom.
-- Original/subject median-cut palettes with 4/6/8/12/16 colors.
+- Original/subject palettes with 4–48 colors, or Auto: the fewest colors that reproduce the image faithfully (median cut plus perceptual salience selection; ADR-015, ADR-016).
 - HEX, RGB, HSL, OKLCH, percentages, clipboard copy, and JSON/CSS/TXT/PNG-strip exports.
 - Transparent cutout export in PNG and WebP.
 - Typed frontend/native boundary, accessible states, tests, and macOS bundle configuration.

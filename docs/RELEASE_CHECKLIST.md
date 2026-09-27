@@ -49,7 +49,7 @@ Use rights-safe local images covering hair, products, foliage, dark-on-dark subj
 - [ ] Remove a background and confirm dimensions, orientation, transparency, and edge quality.
 - [ ] Exercise Original, Cutout, Slider, and Side by side at minimum/default/maximum zoom.
 - [ ] Exercise checker, white, and black preview backgrounds.
-- [ ] Extract Original and Subject palettes at 4, 6, 8, 12, and 16 colors.
+- [ ] Extract Original and Subject palettes at every size (4–48) and with Auto; confirm Auto reports the chosen size in the status bar, the similar-shades note appears above 16, and a 48-color PNG strip exports.
 - [ ] Copy HEX/RGB/HSL/OKLCH values using only the keyboard.
 - [ ] Export cutouts as PNG and WebP; confirm dimensions and alpha.
 - [ ] Export palettes as JSON, CSS, TXT, and PNG strip; inspect every output.

@@ -30,3 +30,29 @@ pub fn extract_palette(
     )
     .map_err(|error| error.to_string())
 }
+
+/// Auto ("faithful") size: the smallest supported palette that reproduces the
+/// image within a just-noticeable difference on average (ADR-016).
+#[tauri::command]
+pub fn extract_palette_auto(
+    source_path: Option<String>,
+    source: String,
+    cutout_path: Option<String>,
+) -> Result<PaletteResult, String> {
+    let source = PaletteSource::parse(&source).map_err(|error| error.to_string())?;
+    let image_bytes = match source {
+        PaletteSource::Original => {
+            let path = source_path
+                .ok_or_else(|| "Import an image before extracting a palette.".to_owned())?;
+            image_service::read_cached_bytes(&path).map_err(|error| error.to_string())?
+        }
+        PaletteSource::Subject => Vec::new(),
+    };
+
+    palette_service::extract_palette_auto(
+        &image_bytes,
+        source,
+        cutout_path.as_ref().map(std::path::Path::new),
+    )
+    .map_err(|error| error.to_string())
+}

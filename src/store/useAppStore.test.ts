@@ -28,6 +28,20 @@ describe("useAppStore", () => {
     URL.revokeObjectURL = originalRevoke;
   });
 
+  it("reports a default or custom message when a palette is set", () => {
+    const palette = { source: "original" as const, count: 40 as const, colors: [] };
+    useAppStore.getState().setPalette(palette);
+    expect(useAppStore.getState().message).toBe("Palette extracted");
+    useAppStore.getState().setPalette(palette, "Palette extracted · Auto chose 40 colors");
+    expect(useAppStore.getState().message).toBe("Palette extracted · Auto chose 40 colors");
+    expect(useAppStore.getState().operationStatus).toBe("success");
+  });
+
+  it("accepts Auto as the palette size", () => {
+    useAppStore.getState().setPaletteCount("auto");
+    expect(useAppStore.getState().paletteCount).toBe("auto");
+  });
+
   it("marks the image ready and resets removal, palette, and zoom", () => {
     useAppStore.setState({ zoom: 2 });
     useAppStore.getState().setImage(makeAsset());

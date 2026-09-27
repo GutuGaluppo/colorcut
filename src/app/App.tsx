@@ -13,7 +13,7 @@ import {
   cutoutPreviewUrl,
   exportCutout,
   exportPaletteImage,
-  extractPalette,
+  extractPaletteOfSize,
   getPhotoroomLicenseStatus,
   removeBackground,
   removeBackgroundCloud,
@@ -201,7 +201,11 @@ export function App() {
         paletteSource === "original"
           ? await cacheSourceImage(await readObjectUrlBytes(image.sourceUrl))
           : undefined;
-      setPalette(await extractPalette(paletteSource, paletteCount, sourcePath, cutoutPath));
+      const result = await extractPaletteOfSize(paletteSource, paletteCount, sourcePath, cutoutPath);
+      setPalette(
+        result,
+        paletteCount === "auto" ? `Palette extracted · Auto chose ${result.count} colors` : "Palette extracted",
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : "Palette extraction failed.";
       setOperation("error", message);

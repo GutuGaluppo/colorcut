@@ -55,9 +55,9 @@ fn srgb_channel_to_linear(c: f32) -> f32 {
     }
 }
 
-/// RGB -> OKLCH via OKLab, using Björn Ottosson's published sRGB/OKLab matrices.
-/// `l` is 0-1, `c` is typically 0-~0.4, `h` is degrees 0-360.
-pub fn rgb_to_oklch(rgb: RgbColor) -> OklchColor {
+/// RGB -> OKLab `[L, a, b]`, using Björn Ottosson's published sRGB/OKLab matrices.
+/// Euclidean distance in OKLab approximates perceived color difference.
+pub fn rgb_to_oklab(rgb: RgbColor) -> [f32; 3] {
     let r = srgb_channel_to_linear(rgb.r as f32 / 255.0);
     let g = srgb_channel_to_linear(rgb.g as f32 / 255.0);
     let b = srgb_channel_to_linear(rgb.b as f32 / 255.0);
@@ -70,9 +70,16 @@ pub fn rgb_to_oklch(rgb: RgbColor) -> OklchColor {
     let m_ = m.cbrt();
     let s_ = s.cbrt();
 
-    let ok_l = 0.210_454_26 * l_ + 0.793_617_8 * m_ - 0.004_072_047 * s_;
-    let ok_a = 1.977_998_5 * l_ - 2.428_592_2 * m_ + 0.450_593_7 * s_;
-    let ok_b = 0.025_904_037 * l_ + 0.782_771_77 * m_ - 0.808_675_77 * s_;
+    [
+        0.210_454_26 * l_ + 0.793_617_8 * m_ - 0.004_072_047 * s_,
+        1.977_998_5 * l_ - 2.428_592_2 * m_ + 0.450_593_7 * s_,
+        0.025_904_037 * l_ + 0.782_771_77 * m_ - 0.808_675_77 * s_,
+    ]
+}
+
+/// RGB -> OKLCH via OKLab. `l` is 0-1, `c` is typically 0-~0.4, `h` is degrees 0-360.
+pub fn rgb_to_oklch(rgb: RgbColor) -> OklchColor {
+    let [ok_l, ok_a, ok_b] = rgb_to_oklab(rgb);
 
     let c = (ok_a * ok_a + ok_b * ok_b).sqrt();
     let mut h = ok_b.atan2(ok_a).to_degrees();

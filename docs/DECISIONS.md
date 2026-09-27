@@ -187,3 +187,104 @@ This is deliberately thin margin, matching "don't lose money, minimal profit" ra
 - Decide whether the proxy strictly forwards bytes (image in, PNG out, no logging/retention of user images) or could ever persist anything — for consistency with `AGENTS.md`'s "treat imported files as untrusted" and the product's local-first ethos, the default should be **no image retention on the proxy**, request-scoped only. State this explicitly wherever the cloud feature is disclosed to users.
 - This ADR does not itself edit `AGENTS.md`'s non-negotiable rule text or `IMPLEMENTATION.md` §12 (privacy) — both still read as pure local-first/no-cloud/no-accounts. They need a follow-up edit carving out this one named exception (including that a proxy the owner controls now exists) before implementation starts, since `AGENTS.md` is the shared contract with Codex and should not silently drift out of sync with an accepted ADR.
 - Pricing inputs (Photoroom's per-image rate, the chosen payment platform's fee structure) are point-in-time research from this ADR's date — reconfirm both immediately before launch pricing is finalized, not just before writing the checkout integration. The proxy adds a small amount of hosting cost (likely within a free tier at this product's plausible volume, but not zero) that the pricing table above does not itemize separately.
+
+## ADR-015 — Pick palette colors by perceptual salience, not median cut alone
+
+**Status:** Accepted (2026-09-27)
+
+**Found by owner QA:** a dusk photo of Vernazza (`Images_QA/anders-jilden-…`) at 16 colors returned mostly dark slate/navy/mauve shades and missed colors that clearly stand out in the image: the peach/orange sunset band over the hills and the vivid orange lit windows.
+
+**Root cause:** median cut (even with ADR-009's `population * range` weighting) spends its slots where there are many pixels and a wide RGB range. A broad dark gradient of sky, sea and cliffs keeps winning splits, and a small vivid region (1–3% of pixels) ends up averaged into a larger bucket, producing a dull brownish mean instead of its real color. This is the "remaining gap" ADR-009 already predicted.
+
+**Decision:** keep median cut, but only to over-segment: it produces `max(4 × count, 48)` candidate clusters. A new `palette_selection` step then picks the final `count` colors greedily in OKLab:
+- first the most populous candidate;
+- then, repeatedly, the candidate with the highest `sqrt(share) × distance to the nearest chosen color × (1 + 4 × chroma)`;
+- candidates under 0.2% of pixels are ignored as noise.
+
+Every candidate's pixels are credited to its nearest chosen color, so percentages still cover the whole image. Each swatch keeps the chosen candidate's own color rather than an average, which keeps vivid accents vivid. The selection also implements IMPLEMENTATION.md §8's "merge perceptually near-duplicate clusters": a near-duplicate is never distant enough to win a slot.
+
+**Verified:**
+- Vernazza at 16 colors now includes the peach sky (`#F0BE96`), the lit-window orange (`#E2774E`, `#B6442A`) and deep reds. At 8 colors it keeps the peach and the orange-red.
+- On other `Images_QA` photos:
+  - the pink-wall portrait drops from 12/16 wall shades to 4, and gains hair and denim tones;
+  - the green shoe gets its teal and orange;
+  - the maroon sneaker on yellow gets its burgundy;
+  - the neon/DJ photo gets its pink and bright green.
+- Deterministic (index tie-breaking, no randomness).
+
+Tests:
+- `palette_selection::tests` covers the selection step directly.
+- `palette_service::tests::keeps_a_small_vivid_accent_in_a_mostly_dark_scene` is a synthetic dusk scene with a 0.5% orange patch. It fails on the previous algorithm (8 navy/mauve shades) and passes now.
+
+**Follow-up (same day, owner request): palette sizes now go up to 28.** The owner wanted palettes that are more comprehensive than just the "main colors", so `SUPPORTED_COUNTS` is now 4, 6, 8, 12, 16, 20, 24 and 28 (`palette_service.rs`, `PaletteCount` in `src/types/domain.ts`, the Inspector's Colors selector). The PNG strip limit rose from 16 to 28 (960 px wide, so about 34 px per swatch). This is an additive DTO change: every earlier count still works and the default stays 8. It depends on the salience selection above; plain median cut would have spent the extra slots on more near-identical dark shades.
+
+Measured on `Images_QA` before adopting:
+- Extraction takes the same time at 16, 20 and 28 colors (about 30–170 ms per photo, dominated by decoding).
+- Every requested color is returned, and each covers at least 0.4% of the image.
+- Rich photos (Vernazza, a plant-filled café) keep gaining distinct colors up to 28.
+- Low-variety photos (a portrait on a flat pink wall, a plant on a pale background) start adding neighboring shades past about 20. That is inherent to asking a simple image for many colors, not a defect.
+
+**Caveats:**
+- The weights (`CHROMA_BOOST = 4`, `MIN_SHARE = 0.2%`, 4× over-segmentation) were tuned by eye on `Images_QA`. They are named constants in `palette_selection.rs` if QA calls for another pass.
+- The landing page's palette examples were generated with the 1.0.0 algorithm. Regenerate them when a release ships this change, not before, so the site keeps matching the downloadable app.
+
+## ADR-016 — Palettes up to 48 colors, and an Auto ("faithful") size
+
+**Status:** Accepted (2026-09-27)
+
+**Context:** the owner wants palettes that painters can work from: enough colors to reproduce an image, not just its dominant tones. Two questions needed data rather than guesses: how many colors the machine can handle, and how many an image actually needs.
+
+**Measured (Vernazza dusk photo, `Images_QA/anders-jilden-…`, with ADR-015's pipeline):**
+- **Cost is not the limit.** Extraction took about 30 ms whether it produced 4 or 128 colors, because it works on a downsampled copy.
+- **The limits are perception and calibration.**
+  - Past about 48–64 colors, the closest pair of palette colors falls under about 0.02 OKLab, roughly one just-noticeable difference.
+  - Past about 64 colors, results got *worse*: at 96 the lit-window orange disappeared entirely. The fixed 0.2% noise floor was discarding the now-tiny candidates that held the accents.
+- **Fidelity:** repainting the image with only the palette, the mean OKLab error was 0.031 at 16 colors, 0.024 at 28, 0.020 at 40 and 0.018 at 48.
+
+**Decision:**
+- **Sizes:** 4, 6, 8, 12, 16, 20, 24, 28, 32, 40 and 48. The default stays 8. The PNG strip limit rose to 48.
+- **Recalibration for large sizes:**
+  - Palettes are sampled at 400 px instead of 200 px on the long side.
+  - `palette_selection`'s noise floor now scales down above 16 colors: `0.2% × 16 / count`.
+  - With both changes, error falls steadily up to 48 and the vivid accents survive (visually checked at 40 and 48).
+- **Auto size:** a new `extract_palette_auto` command. It tries each size from smallest to largest on one decoded sample, and returns the first palette whose mean OKLab distance from the pixels (every 4th sampled pixel) is at most `FIDELITY_TARGET = 0.02`. If no size gets there, it returns 48. The returned colors are exactly the fixed-size palette for that count, and the status bar reports the chosen size.
+  - Results on `Images_QA`: portrait on a flat wall → 8, plant on a pale background → 12, Vernazza → 48 (0.0201 at 40), busy café → 48 (does not reach the target).
+  - Timing is about 80–200 ms in release builds.
+- **Notice:** above 16 colors, and in Auto, the Inspector says that larger palettes are more likely to include very similar shades.
+- **Contract:** all additive. `extract_palette` keeps its signature. `PaletteSize = PaletteCount | "auto"` exists only in the frontend.
+
+**Not done (would need a product decision):** turning the palette into paints to buy or mixing recipes. Physical pigments mix subtractively, so recommending tubes needs a pigment-mixing model (for example Kubelka–Munk). That is a new tool, not a palette tweak.
+
+**Caveat:** the landing page's palette examples still reflect 1.0.0. Regenerate them with the release that ships ADR-015 and ADR-016.
+
+## ADR-017 — Paint mixing recipes from a palette (deferred)
+
+**Status:** Deferred (2026-09-27). Recorded for future consideration, not scheduled.
+
+**Idea (owner request):** an optional, off-by-default action that turns an extracted palette into paint mixing recipes, for example "2 parts ultramarine blue + 1 part burnt sienna + white". A painter could then buy the right tubes and mix each palette color. It builds on ADR-016's larger and Auto palettes.
+
+**Why it's not a small feature:**
+- Paint mixes subtractively: blue + yellow paint makes green, while blue + yellow light makes grey. Predicting mixes needs a pigment model (Kubelka–Munk), not RGB math.
+- That model needs measured absorption/scattering data per pigment, ideally spectral. The data varies by pigment and brand, and datasets with clear commercial-use licenses are scarce.
+- Product decisions come first:
+  - which medium (oil, acrylic or watercolor, which behave differently);
+  - which paint set (generic pigments or a specific brand line);
+  - how to present a recipe (parts or percentages);
+  - how to handle colors the chosen set can't reach.
+- Useful accuracy can only be confirmed by physically mixing paint and comparing.
+- This is a new tool under `AGENTS.md`'s "scope requiring explicit approval". It needs a go-ahead and its own ADR before implementation, and must stay opt-in.
+
+**Options evaluated (rough effort, 2026-09-27):**
+
+| Option | Accuracy | Effort | Notes |
+| --- | --- | --- | --- |
+| A. Simplified Kubelka–Munk with ~10–12 common pigments (titanium white, cadmium yellow/red, ultramarine, phthalo blue, burnt sienna, yellow ochre, black…) | Approximate | 2–4 days incl. UI and tests | Recipes as a starting point, clearly labeled "approximate"; needs a physical test before shipping |
+| B. Full spectral Kubelka–Munk with measured pigment data | Good | 1–2 weeks plus data sourcing | Depends on a dataset licensed for commercial use |
+| C. License a pigment-mixing library (e.g. Mixbox) | Good | A few days after licensing | Its free license is, as understood on this date, non-commercial, and ColorCut is proprietary; confirm terms and cost with the authors |
+
+**Recommended first step when revisited:** a spike of about one day, outside the app, using option A:
+1. Generate recipes for 10–15 colors of the Vernazza palette (`Images_QA/anders-jilden-…`) from a basic pigment set.
+2. Have a painter mix some of them physically and compare.
+3. Decide between A, B and C with real results.
+
+Before starting, the owner picks the medium and, optionally, a reference paint line.

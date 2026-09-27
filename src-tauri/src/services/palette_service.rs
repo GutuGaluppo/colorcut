@@ -4,12 +4,26 @@ use image::imageops::FilterType;
 use image::{ImageBuffer, Pixel};
 use thiserror::Error;
 
-use super::color_conversion::{rgb_to_hsl, rgb_to_oklch, to_hex};
+use super::color_conversion::{rgb_to_hsl, rgb_to_oklab, rgb_to_oklch, to_hex};
 use super::median_cut::quantize;
+use super::palette_selection::{candidate_count, select};
 use crate::models::{PaletteColor, PaletteResult, RgbColor};
 
-const MAX_SAMPLE_DIMENSION: u32 = 200;
+/// Longest side of the downsampled image palettes are computed from. 400 px keeps
+/// small details (lit windows, thin accents) visible at the larger palette sizes
+/// while extraction stays well under a second (ADR-016).
+const MAX_SAMPLE_DIMENSION: u32 = 400;
 const SUBJECT_ALPHA_THRESHOLD: u8 = 16;
+/// Palette sizes offered in the UI, ascending; keep in sync with `PaletteCount`
+/// in `src/types/domain.ts`.
+pub const SUPPORTED_COUNTS: [u8; 11] = [4, 6, 8, 12, 16, 20, 24, 28, 32, 40, 48];
+/// Auto mode's goal: the mean OKLab distance from each sampled pixel to its
+/// nearest palette color. 0.02 is roughly one just-noticeable difference, so a
+/// palette at this level repaints the image with barely visible error (ADR-016).
+pub const FIDELITY_TARGET: f32 = 0.02;
+/// Auto mode measures fidelity on every Nth sampled pixel, which is plenty to
+/// estimate a mean and keeps the up-to-11 evaluations cheap.
+const FIDELITY_STRIDE: usize = 4;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PaletteSource {
@@ -38,7 +52,7 @@ impl PaletteSource {
 pub enum PaletteError {
     #[error("Unsupported palette source: {0}")]
     InvalidSource(String),
-    #[error("Choose 4, 6, 8, 12, or 16 colors.")]
+    #[error("Choose 4, 6, 8, 12, 16, 20, 24, 28, 32, 40, or 48 colors.")]
     InvalidCount,
     #[error("Extract a subject cutout with Remove Background first.")]
     MissingCutout,
@@ -54,10 +68,66 @@ pub fn extract_palette(
     count: u8,
     cutout_path: Option<&Path>,
 ) -> Result<PaletteResult, PaletteError> {
-    if ![4, 6, 8, 12, 16].contains(&count) {
+    if !SUPPORTED_COUNTS.contains(&count) {
         return Err(PaletteError::InvalidCount);
     }
+    let pixels = sample(image_bytes, source, cutout_path)?;
+    Ok(build_palette(&pixels, source, count))
+}
 
+/// Picks the smallest supported size whose palette reproduces the sampled image
+/// within `FIDELITY_TARGET`, falling back to the largest size when no size gets
+/// there. The returned palette is exactly what `extract_palette` gives for that
+/// size, so switching from Auto to the same fixed count shows the same colors.
+pub fn extract_palette_auto(
+    image_bytes: &[u8],
+    source: PaletteSource,
+    cutout_path: Option<&Path>,
+) -> Result<PaletteResult, PaletteError> {
+    let pixels = sample(image_bytes, source, cutout_path)?;
+    let labs: Vec<[f32; 3]> = pixels
+        .iter()
+        .step_by(FIDELITY_STRIDE)
+        .map(|p| {
+            rgb_to_oklab(RgbColor {
+                r: p[0],
+                g: p[1],
+                b: p[2],
+            })
+        })
+        .collect();
+
+    let mut palette = build_palette(&pixels, source, SUPPORTED_COUNTS[0]);
+    for &count in &SUPPORTED_COUNTS[1..] {
+        if mean_distance(&labs, &palette) <= FIDELITY_TARGET {
+            break;
+        }
+        palette = build_palette(&pixels, source, count);
+    }
+    Ok(palette)
+}
+
+/// Mean OKLab distance from each pixel to its nearest palette color.
+fn mean_distance(labs: &[[f32; 3]], palette: &PaletteResult) -> f32 {
+    let swatches: Vec<[f32; 3]> = palette.colors.iter().map(|c| rgb_to_oklab(c.rgb)).collect();
+    let sum: f32 = labs
+        .iter()
+        .map(|lab| {
+            swatches
+                .iter()
+                .map(|s| (0..3).map(|i| (lab[i] - s[i]).powi(2)).sum::<f32>())
+                .fold(f32::MAX, f32::min)
+                .sqrt()
+        })
+        .sum();
+    sum / labs.len().max(1) as f32
+}
+
+fn sample(
+    image_bytes: &[u8],
+    source: PaletteSource,
+    cutout_path: Option<&Path>,
+) -> Result<Vec<[u8; 3]>, PaletteError> {
     let pixels = match source {
         PaletteSource::Original => sample_original(image_bytes)?,
         PaletteSource::Subject => {
@@ -65,13 +135,16 @@ pub fn extract_palette(
             sample_subject(path)?
         }
     };
-
     if pixels.is_empty() {
         return Err(PaletteError::NoPixels);
     }
+    Ok(pixels)
+}
 
+fn build_palette(pixels: &[[u8; 3]], source: PaletteSource, count: u8) -> PaletteResult {
     let total = pixels.len() as f32;
-    let mut clusters = quantize(pixels, count as usize);
+    let candidates = quantize(pixels.to_vec(), candidate_count(count as usize));
+    let mut clusters = select(candidates, count as usize);
     clusters.sort_by(|a, b| b.population.cmp(&a.population));
 
     let mut colors: Vec<PaletteColor> = clusters
@@ -95,11 +168,11 @@ pub fn extract_palette(
 
     normalize_percentages(&mut colors);
 
-    Ok(PaletteResult {
+    PaletteResult {
         source: source.as_str().to_owned(),
         count,
         colors,
-    })
+    }
 }
 
 /// Rounds each color's percentage to one decimal, then nudges the largest
@@ -186,6 +259,105 @@ mod tests {
     }
 
     #[test]
+    fn supports_every_offered_count_up_to_48() {
+        // A smooth two-axis gradient has enough variety to fill every size.
+        let bytes = encode_rgb_png(120, 120, |x, y| {
+            [(x * 2) as u8, (y * 2) as u8, ((x + y) % 256) as u8]
+        });
+        for count in SUPPORTED_COUNTS {
+            let result = extract_palette(&bytes, PaletteSource::Original, count, None).unwrap();
+            assert_eq!(result.colors.len(), usize::from(count), "count {count}");
+            let total: f32 = result.colors.iter().map(|c| c.percentage).sum();
+            assert!(
+                (total - 100.0).abs() < 0.5,
+                "count {count}: percentages sum to {total}"
+            );
+        }
+    }
+
+    #[test]
+    fn rejects_counts_above_48() {
+        let bytes = encode_rgb_png(4, 4, |_, _| [10, 10, 10]);
+        let result = extract_palette(&bytes, PaletteSource::Original, 64, None);
+        assert!(matches!(result, Err(PaletteError::InvalidCount)));
+    }
+
+    #[test]
+    fn auto_uses_the_smallest_size_for_a_simple_image() {
+        let bytes = encode_rgb_png(
+            40,
+            40,
+            |x, _| if x < 20 { [255, 0, 0] } else { [0, 0, 255] },
+        );
+        let result = extract_palette_auto(&bytes, PaletteSource::Original, None).unwrap();
+        assert_eq!(result.count, SUPPORTED_COUNTS[0]);
+    }
+
+    #[test]
+    fn auto_stops_at_the_first_faithful_size_and_matches_the_fixed_palette() {
+        // A smooth gradient needs a mid-sized palette: more than 4 colors, but it
+        // becomes faithful well before the maximum.
+        let bytes = encode_rgb_png(120, 120, |x, y| [40 + x as u8, 70 + (y / 2) as u8, 110]);
+        let auto = extract_palette_auto(&bytes, PaletteSource::Original, None).unwrap();
+
+        assert!(auto.count > SUPPORTED_COUNTS[0], "chose {}", auto.count);
+        assert!(
+            auto.count < *SUPPORTED_COUNTS.last().unwrap(),
+            "chose {}",
+            auto.count
+        );
+        let pixels = sample(&bytes, PaletteSource::Original, None).unwrap();
+        let labs: Vec<[f32; 3]> = pixels
+            .iter()
+            .step_by(FIDELITY_STRIDE)
+            .map(|p| {
+                rgb_to_oklab(RgbColor {
+                    r: p[0],
+                    g: p[1],
+                    b: p[2],
+                })
+            })
+            .collect();
+        assert!(mean_distance(&labs, &auto) <= FIDELITY_TARGET);
+        // The next smaller size was not faithful enough, or Auto would have stopped there.
+        let index = SUPPORTED_COUNTS
+            .iter()
+            .position(|&c| c == auto.count)
+            .unwrap();
+        let smaller = extract_palette(
+            &bytes,
+            PaletteSource::Original,
+            SUPPORTED_COUNTS[index - 1],
+            None,
+        )
+        .unwrap();
+        assert!(mean_distance(&labs, &smaller) > FIDELITY_TARGET);
+        // Same colors as asking for that size directly.
+        let fixed = extract_palette(&bytes, PaletteSource::Original, auto.count, None).unwrap();
+        let hexes = |p: &PaletteResult| p.colors.iter().map(|c| c.hex.clone()).collect::<Vec<_>>();
+        assert_eq!(hexes(&auto), hexes(&fixed));
+    }
+
+    #[test]
+    fn auto_falls_back_to_the_largest_size_for_a_noisy_image() {
+        // Pseudo-random noise can't be reproduced within a just-noticeable difference.
+        let bytes = encode_rgb_png(160, 160, |x, y| {
+            let n = (x.wrapping_mul(73_856_093) ^ y.wrapping_mul(19_349_663))
+                .wrapping_mul(2_654_435_761);
+            [(n >> 8) as u8, (n >> 16) as u8, (n >> 24) as u8]
+        });
+        let result = extract_palette_auto(&bytes, PaletteSource::Original, None).unwrap();
+        assert_eq!(result.count, *SUPPORTED_COUNTS.last().unwrap());
+    }
+
+    #[test]
+    fn auto_requires_a_cutout_for_subject_mode() {
+        let bytes = encode_rgb_png(4, 4, |_, _| [10, 10, 10]);
+        let result = extract_palette_auto(&bytes, PaletteSource::Subject, None);
+        assert!(matches!(result, Err(PaletteError::MissingCutout)));
+    }
+
+    #[test]
     fn requires_a_cutout_path_for_subject_mode() {
         let bytes = encode_rgb_png(4, 4, |_, _| [10, 10, 10]);
         let result = extract_palette(&bytes, PaletteSource::Subject, 4, None);
@@ -247,6 +419,37 @@ mod tests {
         assert_eq!(result.colors[0].hex, "#00C800");
 
         std::fs::remove_dir_all(&temp_dir).ok();
+    }
+
+    #[test]
+    fn keeps_a_small_vivid_accent_in_a_mostly_dark_scene() {
+        // Regression for ADR-015 (a dusk photo whose lit windows were missing): a
+        // dark, slightly graded slate/navy scene with a small vivid orange patch
+        // (0.5% of pixels) must still yield an orange swatch at 8 colors.
+        let bytes = encode_rgb_png(200, 200, |x, y| {
+            if (90..110).contains(&x) && (120..130).contains(&y) {
+                [235, 110, 40]
+            } else {
+                // Dusk sky/sea/cliffs: a broad dark gradient over slate, navy and
+                // mauve, wide enough in range that plain median cut keeps
+                // splitting it instead of the accent.
+                let t = ((x + y) / 2) as u8;
+                [20 + t / 2, 24 + t / 3, 40 + t / 2 + (x % 30) as u8]
+            }
+        });
+
+        let result = extract_palette(&bytes, PaletteSource::Original, 8, None).unwrap();
+
+        assert!(
+            result
+                .colors
+                .iter()
+                .any(|c| c.rgb.r > 200 && c.rgb.g < 140 && c.rgb.b < 80),
+            "expected an orange swatch, got {:?}",
+            result.colors.iter().map(|c| &c.hex).collect::<Vec<_>>()
+        );
+        let total: f32 = result.colors.iter().map(|c| c.percentage).sum();
+        assert!((total - 100.0).abs() < 0.5, "percentages sum to {total}");
     }
 
     #[test]

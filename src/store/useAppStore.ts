@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type {
   ImageAsset,
   OperationStatus,
-  PaletteCount,
+  PaletteSize,
   PaletteResult,
   PaletteSource,
   PreviewBackground,
@@ -21,7 +21,7 @@ type AppState = {
   removal: RemovalResult | null;
   palette: PaletteResult | null;
   paletteSource: PaletteSource;
-  paletteCount: PaletteCount;
+  paletteCount: PaletteSize;
   operationStatus: OperationStatus;
   message: string;
   previewBackground: PreviewBackground;
@@ -34,9 +34,9 @@ type AppState = {
   setRemoval: (removal: RemovalResult) => void;
   setViewMode: (mode: ViewMode) => void;
   setSliderPosition: (position: number) => void;
-  setPalette: (palette: PaletteResult) => void;
+  setPalette: (palette: PaletteResult, message?: string) => void;
   setPaletteSource: (source: PaletteSource) => void;
-  setPaletteCount: (count: PaletteCount) => void;
+  setPaletteCount: (count: PaletteSize) => void;
   setZoom: (zoom: number) => void;
   zoomIn: () => void;
   zoomOut: () => void;
@@ -85,7 +85,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ removal, viewMode: "cutout", operationStatus: "success", message: "Background removed" }),
   setViewMode: (viewMode) => set({ viewMode }),
   setSliderPosition: (position) => set({ sliderPosition: Math.min(100, Math.max(0, position)) }),
-  setPalette: (palette) => set({ palette, operationStatus: "success", message: "Palette extracted" }),
+  setPalette: (palette, message = "Palette extracted") => set({ palette, operationStatus: "success", message }),
   setPaletteSource: (paletteSource) => set({ paletteSource }),
   setPaletteCount: (paletteCount) => set({ paletteCount }),
   setZoom: (zoom) => set({ zoom: clampZoom(zoom) }),

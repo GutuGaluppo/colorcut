@@ -1,6 +1,6 @@
-/// A deterministic median-cut color quantizer. Perceptual refinement (k-means,
-/// merging near-duplicate clusters) is intentionally deferred — see
-/// IMPLEMENTATION.md §8, which accepts plain median-cut for the first vertical slice.
+/// A deterministic median-cut color quantizer. The palette pipeline uses it to
+/// over-segment an image into candidate clusters; `palette_selection` then picks
+/// the final colors in a perceptual space (ADR-015).
 pub struct Cluster {
     pub color: [u8; 3],
     pub population: usize,

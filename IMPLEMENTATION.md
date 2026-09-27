@@ -180,7 +180,7 @@ The Rust equivalents use `serde` and camelCase serialization. Additive schema ch
 - File metadata.
 - Cutout actions and preview settings.
 - Palette source: Original / Subject.
-- Color count: 4 / 6 / 8 / 12 / 16.
+- Color count: Auto / 4 / 6 / 8 / 12 / 16 / 20 / 24 / 28 / 32 / 40 / 48, with a note above 16 that larger palettes are more likely to contain very similar shades.
 - Swatches and technical values.
 - Copy/export actions.
 
@@ -227,11 +227,12 @@ Acceptance criteria:
 
 ### Palette extraction
 
-Start with a deterministic quantization implementation. Median cut is acceptable for the first vertical slice; k-means or a perceptual-space refinement can follow after visual evaluation.
+Start with a deterministic quantization implementation. Median cut is acceptable for the first vertical slice; k-means or a perceptual-space refinement can follow after visual evaluation. Current pipeline (ADR-015): median cut over-segments into candidates, then a greedy OKLab salience selection picks the final colors.
 
 Rules:
 
-- Allow 4, 6, 8, 12, or 16 colors; default to 8.
+- Allow 4, 6, 8, 12, 16, 20, 24, 28, 32, 40, or 48 colors, or Auto; default to 8. Sizes above 16 rely on ADR-015's salience selection; 32–48 and Auto were added with ADR-016.
+- Auto picks the smallest supported size whose palette reproduces the image within about one just-noticeable difference (mean OKLab distance ≤ 0.02), and falls back to 48.
 - For Subject mode, ignore pixels below an alpha threshold.
 - Merge perceptually near-duplicate clusters.
 - Sort by relative pixel weight.
@@ -272,6 +273,7 @@ Planned commands:
 get_image_metadata
 remove_background
 extract_palette
+extract_palette_auto
 export_cutout
 export_palette
 ```
@@ -454,4 +456,8 @@ All MVP phases (§14, Phases 0–5) and the definition of done (§15) are comple
 **Phase 6 — Photoroom cloud cutout** (§14), approved in `docs/DECISIONS.md` ADR-014, is complete and live: the Worker is deployed, `PHOTOROOM_PROXY_URL` points at it, and the app-side UI (Inspector action-card, TopBar split-button dropdown, license field, offline/error modal) is implemented, tested, and manually smoke-tested — see the Phase 6 status note. Remaining, non-blocking: license issuance is still manual (`wrangler kv key put`); automating it from a payment-platform webhook is a future task, not required to sell credit packs today.
 
 Any new feature work from here (e.g. a stronger background-removal model, manual touch-up tools, batch processing) is post-MVP scope per `AGENTS.md` non-goals and needs an explicit product decision before starting.
+
+**Palette quality (post-1.0.0, unreleased):** salience-based selection (ADR-015), palettes up to 48 colors, and an Auto size (ADR-016) are implemented on `master` and will ship in the next release. The landing page shows them as coming soon until that release exists.
+
+**Deferred idea:** paint mixing recipes from a palette (ADR-017). It is recorded with effort estimates and a suggested one-day spike, but is not scheduled and needs explicit approval first.
 

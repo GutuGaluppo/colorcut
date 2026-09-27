@@ -30,7 +30,9 @@ export type PaletteColor = {
 };
 
 export type PaletteSource = "original" | "subject";
-export type PaletteCount = 4 | 6 | 8 | 12 | 16;
+export type PaletteCount = 4 | 6 | 8 | 12 | 16 | 20 | 24 | 28 | 32 | 40 | 48;
+/** A fixed palette size, or "auto": the fewest colors that reproduce the image faithfully (ADR-016). */
+export type PaletteSize = PaletteCount | "auto";
 
 export type PaletteResult = {
   source: PaletteSource;

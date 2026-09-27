@@ -1,8 +1,9 @@
-import { Check, Cloud, Eye, EyeOff, Palette, Scissors, Sparkles } from "lucide-react";
+import { Check, Cloud, Eye, EyeOff, Info, Palette, Scissors, Sparkles } from "lucide-react";
 import { useState } from "react";
 import type {
   ImageAsset,
   PaletteCount,
+  PaletteSize,
   PaletteResult,
   PaletteSource,
   PhotoroomLicenseStatus,
@@ -14,7 +15,9 @@ import type { PaletteExportFormat } from "../../features/palette/exportPalette";
 import { PalettePreview } from "../palette/PalettePreview";
 import { PaletteResults } from "../palette/PaletteResults";
 
-const PALETTE_COUNTS: PaletteCount[] = [4, 6, 8, 12, 16];
+const PALETTE_COUNTS: PaletteCount[] = [4, 6, 8, 12, 16, 20, 24, 28, 32, 40, 48];
+/** Above this size, palettes increasingly contain near-identical shades (ADR-016). */
+const SIMILAR_COLORS_NOTICE_ABOVE = 16;
 const PALETTE_EXPORT_FORMATS: PaletteExportFormat[] = ["json", "css", "txt"];
 const VIEW_MODES: { value: ViewMode; label: string }[] = [
   { value: "original", label: "Original" },
@@ -35,10 +38,10 @@ type InspectorProps = {
   onRemoveBackground: () => void;
   palette: PaletteResult | null;
   paletteSource: PaletteSource;
-  paletteCount: PaletteCount;
+  paletteCount: PaletteSize;
   canExtractPalette: boolean;
   onPaletteSourceChange: (source: PaletteSource) => void;
-  onPaletteCountChange: (count: PaletteCount) => void;
+  onPaletteCountChange: (count: PaletteSize) => void;
   onExtractPalette: () => void;
   onExportPalette: (format: PaletteExportFormat) => void;
   onExportPaletteImage: () => void;
@@ -219,8 +222,13 @@ export function Inspector({
             <select
               disabled={!image}
               value={paletteCount}
-              onChange={(event) => onPaletteCountChange(Number(event.target.value) as PaletteCount)}
+              onChange={(event) =>
+                onPaletteCountChange(
+                  event.target.value === "auto" ? "auto" : (Number(event.target.value) as PaletteCount),
+                )
+              }
             >
+              <option value="auto">Auto</option>
               {PALETTE_COUNTS.map((count) => (
                 <option key={count} value={count}>
                   {count}
@@ -229,6 +237,20 @@ export function Inspector({
             </select>
           </label>
         </div>
+        {(paletteCount === "auto" || paletteCount > SIMILAR_COLORS_NOTICE_ABOVE) && (
+          <div className="palette-size-notes" role="note">
+            {paletteCount === "auto" && (
+              <p>
+                <Sparkles size={13} aria-hidden="true" />
+                Auto picks the fewest colors (up to 48) that reproduce the image faithfully.
+              </p>
+            )}
+            <p>
+              <Info size={13} aria-hidden="true" />
+              The more colors you extract, the more likely the palette is to include very similar shades.
+            </p>
+          </div>
+        )}
         <button
           className="button button--secondary button--full"
           type="button"
