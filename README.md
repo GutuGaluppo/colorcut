@@ -2,11 +2,14 @@
 
 A focused, local-first macOS utility for background removal and palette extraction.
 
-All image processing runs locally. ColorCut has no account, cloud upload, telemetry, or runtime network requirement.
+- **Website:** https://gutugaluppo.github.io/colorcut/
+- **Download:** [ColorCut 1.0.0](https://github.com/GutuGaluppo/colorcut/releases/tag/v1.0.0) (`ColorCut_1.0.0_aarch64.dmg`, Apple Silicon, macOS 11+)
+
+Image processing runs locally by default. ColorCut has no account, telemetry, or runtime network requirement. The only exception is the optional, paid **Remove with Photoroom** cutout (ADR-014): it sends the image only when you click it.
 
 ## Install
 
-Requires an Apple Silicon Mac running macOS 11.0 or newer. Download the latest `.dmg` from the repository's Releases page and drag ColorCut into Applications.
+Requires an Apple Silicon Mac running macOS 11.0 or newer. Download `ColorCut_1.0.0_aarch64.dmg` from the [1.0.0 release](https://github.com/GutuGaluppo/colorcut/releases/tag/v1.0.0) (or the latest one on the [Releases page](https://github.com/GutuGaluppo/colorcut/releases)) and drag ColorCut into Applications.
 
 Releases are currently **unsigned and not notarized** (no Apple Developer ID is used), so macOS blocks the first launch. To open it, go to **System Settings → Privacy & Security** and click **Open Anyway** next to the ColorCut message (on macOS 11–14, Control-click the app and choose **Open** also works). Each release's notes list the DMG's SHA-256 checksum and the exact steps; verify the download with `shasum -a 256 <file>.dmg` first.
 
