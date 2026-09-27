@@ -48,6 +48,14 @@
     },
   };
 
+  // Vernazza palettes for the "coming next" section. OLD is the 1.0.0 pipeline
+  // (plain median cut); NEW and AUTO come from the unreleased ADR-015/016 engine.
+  const NEXT_PALETTES = {
+    old: [["#343F53", 12.5], ["#0C0C0E", 12.5], ["#201816", 12.5], ["#BF9A89", 6.3], ["#525768", 6.3], ["#352E34", 6.3], ["#7D7787", 6.2], ["#7A6C73", 6.2], ["#50444B", 6.2], ["#1D2531", 6.2], ["#9D4F47", 3.1], ["#AB8175", 3.1], ["#6F565D", 3.1], ["#624B4F", 3.1], ["#62606E", 3.1], ["#C17B61", 3.1]],
+    new: [["#17151B", 17.0], ["#414859", 10.9], ["#5D545E", 10.2], ["#2B394E", 10.2], ["#896869", 10.2], ["#192536", 7.8], ["#666C84", 7.8], ["#040406", 6.3], ["#BE8C76", 4.7], ["#8C8595", 4.7], ["#441C16", 3.9], ["#EBA678", 2.3], ["#C96858", 1.2], ["#842015", 1.2], ["#A24E39", 0.8], ["#E08E66", 0.8]],
+    auto: ["#10090C", "#50576A", "#63646F", "#766977", "#434B5D", "#1C1A1E", "#0F1421", "#23344C", "#252026", "#19150A", "#334156", "#64535A", "#9D7E7A", "#8A6E6F", "#33282A", "#453F4A", "#343846", "#040302", "#1A293C", "#767488", "#AB9694", "#442C33", "#938B9B", "#977474", "#593E44", "#885C5E", "#BF8368", "#332715", "#EEB890", "#D4906D", "#D0A288", "#33120D", "#F4AB76", "#D66B57", "#5B2C2E", "#EC8D5F", "#AB615A", "#BC655A", "#5A1D17", "#441311", "#73160C", "#7F3B34", "#A76F68", "#B33B1E", "#8A1F13", "#A6230F", "#F0CEB3", "#DD4F1B"],
+  };
+
   let lang = "pt-BR";
   let currentExample = EXAMPLES[0];
   let paletteSource = "original";
@@ -96,6 +104,7 @@
     renderTabs();
     showExample(currentExample, false);
     renderPalettes();
+    renderNext();
   }
 
   // ---------- Before / after ----------
@@ -258,6 +267,28 @@
     toast.classList.add("is-visible");
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => toast.classList.remove("is-visible"), 1800);
+  }
+
+  // ---------- Coming next ----------
+  function swatchButton(hex, pct) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "strip__swatch";
+    b.style.background = hex;
+    const label = pct === undefined ? hex : `${hex}, ${pct.toLocaleString(lang)}%`;
+    b.title = label;
+    b.setAttribute("aria-label", label);
+    b.addEventListener("click", () => copyHex(hex));
+    return b;
+  }
+
+  function renderNext() {
+    const old = document.getElementById("strip-old");
+    const next = document.getElementById("strip-new");
+    const auto = document.getElementById("strip-auto");
+    old.replaceChildren(...NEXT_PALETTES.old.map(([hex, pct]) => swatchButton(hex, pct)));
+    next.replaceChildren(...NEXT_PALETTES.new.map(([hex, pct]) => swatchButton(hex, pct)));
+    auto.replaceChildren(...NEXT_PALETTES.auto.map((hex) => swatchButton(hex)));
   }
 
   // ---------- Screenshot lightbox ----------

@@ -37,6 +37,7 @@
           <a href="#examples" data-i18n="nav.examples">Exemplos</a>
           <a href="#palettes" data-i18n="nav.palettes">Paletas</a>
           <a href="#privacy" data-i18n="nav.privacy">Privacidade</a>
+          <a href="#next" data-i18n="nav.next">Novidades</a>
           <a href="#faq" data-i18n="nav.faq">Dúvidas</a>
         </nav>
         <div class="site-header__actions">
@@ -199,7 +200,48 @@
       </section>
 
       <!-- Screenshots -->
-      <section class="section" id="screens">
+      <!-- Coming next: palette upgrades (ADR-015/016, unreleased) -->
+      <section class="section" id="next">
+        <div class="container">
+          <header class="section__head">
+            <p class="kicker"><span class="pill pill--soon" data-i18n="next.badge">Em breve</span></p>
+            <h2 data-i18n="next.title">Paletas mais completas</h2>
+            <p class="section__lead" data-i18n="next.lead"></p>
+          </header>
+
+          <div class="next">
+            <figure class="next__compare">
+              <img src="assets/examples/anders-before.jpg" loading="lazy" alt="Vernazza, Cinque Terre" />
+              <div class="next__rows">
+                <div class="next__row">
+                  <span class="next__label" data-i18n="next.old">Versão 1.0 · 16 cores</span>
+                  <div class="strip" id="strip-old"></div>
+                </div>
+                <div class="next__row">
+                  <span class="next__label next__label--new" data-i18n="next.new">Próxima versão · 16 cores</span>
+                  <div class="strip" id="strip-new"></div>
+                </div>
+                <figcaption data-i18n="next.caption"></figcaption>
+              </div>
+            </figure>
+
+            <div class="next__auto">
+              <p class="next__label next__label--new" data-i18n="next.auto">Modo Auto · 48 cores para esta foto</p>
+              <div class="grid-swatches" id="strip-auto"></div>
+              <p class="next__muted" data-i18n="next.autoCaption"></p>
+            </div>
+
+            <ul class="next__features">
+              <li><strong data-i18n="next.f1.title"></strong><span data-i18n="next.f1.body"></span></li>
+              <li><strong data-i18n="next.f2.title"></strong><span data-i18n="next.f2.body"></span></li>
+              <li><strong data-i18n="next.f3.title"></strong><span data-i18n="next.f3.body"></span></li>
+            </ul>
+            <p class="next__note" role="note"><span aria-hidden="true">ⓘ</span> <span data-i18n="next.note"></span></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section--soft" id="screens">
         <div class="container">
           <header class="section__head">
             <p class="kicker" data-i18n="shots.kicker">Por dentro do app</p>
@@ -218,7 +260,7 @@
       </section>
 
       <!-- Steps -->
-      <section class="section section--soft" id="how">
+      <section class="section" id="how">
         <div class="container">
           <header class="section__head">
             <p class="kicker" data-i18n="steps.kicker">Como funciona</p>
@@ -233,7 +275,7 @@
       </section>
 
       <!-- Privacy + Pro -->
-      <section class="section" id="privacy">
+      <section class="section section--soft" id="privacy">
         <div class="container privacy">
           <div class="privacy__copy">
             <p class="kicker" data-i18n="priv.kicker">Privacidade</p>
@@ -266,7 +308,7 @@
       </section>
 
       <!-- FAQ -->
-      <section class="section section--soft" id="faq">
+      <section class="section" id="faq">
         <div class="container container--narrow">
           <header class="section__head">
             <p class="kicker" data-i18n="faq.kicker">Dúvidas</p>
@@ -278,6 +320,7 @@
             <details><summary data-i18n="faq.3.q"></summary><p data-i18n="faq.3.a"></p></details>
             <details><summary data-i18n="faq.4.q"></summary><p data-i18n="faq.4.a"></p></details>
             <details><summary data-i18n="faq.5.q"></summary><p data-i18n="faq.5.a"></p></details>
+            <details><summary data-i18n="faq.6.q"></summary><p data-i18n="faq.6.a"></p></details>
           </div>
         </div>
       </section>
