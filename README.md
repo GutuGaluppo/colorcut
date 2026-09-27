@@ -1,5 +1,7 @@
 # ColorCut
 
+[![Release](https://img.shields.io/github/v/release/GutuGaluppo/colorcut?include_prereleases&sort=semver&label=release)](https://github.com/GutuGaluppo/colorcut/releases)
+
 A focused, local-first macOS utility for background removal and palette extraction.
 
 - **Website:** https://gutugaluppo.github.io/colorcut/
