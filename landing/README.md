@@ -19,7 +19,7 @@ Published to GitHub Pages at https://gutugaluppo.github.io/colorcut/ by `.github
 - `assets/examples/*-after.webp`: cutouts from `BackgroundRemovalService` (`isnet-general-use`, CoreML), resized to 1400 px with no retouching. `*-before.jpg` are the matching originals.
 - The portrait (`averie-after.webp`) is a licensed Photoroom (ColorCut Pro) cutout, labeled "Pro" on the page. The local model loses the white top against the light wall (ADR-005 limitation), and that local result is kept as `averie-local.webp` for the local vs Pro comparison. The app screenshots of that photo were captured through the real "Remove with Photoroom" path.
 - The palettes and timings in `main.js` come from `palette_service::extract_palette` (8 colors, original and subject). The timings were measured on the Mac that generated the assets. The first run also includes model loading.
-- The "Em breve" section (`#next`) shows the unreleased palette engine (ADR-015/016): Vernazza's 16-color palette from the 1.0.0 pipeline next to the new one, plus the Auto result. Once that release ships, drop the "coming soon" framing and regenerate the palette examples above with the new engine.
+- The "New in 1.1" section (`#next`) compares Vernazza's 16-color palette from the 1.0.0 pipeline (plain median cut) with 1.1.0's, and shows 1.1.0's Auto result. The 8-color examples above were regenerated with the 1.1.0 engine.
 - Example photos are from Unsplash. Photographers are credited in the footer.
 
 When you change the UI or the model, capture the assets again so the page keeps showing real output.
