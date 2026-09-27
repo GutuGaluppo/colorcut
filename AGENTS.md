@@ -141,7 +141,7 @@ For Tauri/runtime changes, also run `pnpm tauri dev` or `pnpm tauri build` on a 
 
 Phases 1–5 (import/preview, background removal, palette extraction, comparison/export polish, macOS packaging) are complete and verified against `docs/RELEASE_CHECKLIST.md` §§1–5, including a manual QA pass against the packaged `.app` (not just `pnpm tauri dev`) that found and fixed several release-build-only bugs — see `docs/DECISIONS.md` ADR-005 through ADR-012.
 
-What's left is cutting the 1.0.0 release, decided in `docs/DECISIONS.md` ADR-013: version `1.0.0`, proprietary license (Gutu Galuppo), distributed as an **unsigned pre-release** because no Apple Developer identity is available. Follow `docs/RELEASE_CHECKLIST.md` §§5–7 using the unsigned path (§6a). Do not configure Apple signing or notarization without explicit approval and a Developer ID from the owner (§6b).
+1.0.0 shipped as an **unsigned pre-release** (ADR-013: proprietary license, Gutu Galuppo, no Apple Developer identity). 1.1.0 followed with the same distribution path. It adds the palette recalibration, sizes up to 48, and the Auto size (ADR-015, ADR-016). Cut every release with `docs/RELEASE_CHECKLIST.md` §§5–7 using the unsigned path (§6a). Do not configure Apple signing or notarization without explicit approval and a Developer ID from the owner (§6b). Paint mixing recipes (ADR-017) are deferred and need explicit approval before any work.
 
 A known, accepted (not a bug to fix) limitation: `isnet-general-use` can under-detect a plain, low-texture light garment against a light background (see the ADR-005 follow-up note). Revisit only via the model-benchmark process in `docs/MODEL_NOTES.md`, not by re-tuning the current pipeline further — that was already tried and ruled out.
 

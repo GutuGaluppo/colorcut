@@ -457,7 +457,7 @@ All MVP phases (§14, Phases 0–5) and the definition of done (§15) are comple
 
 Any new feature work from here (e.g. a stronger background-removal model, manual touch-up tools, batch processing) is post-MVP scope per `AGENTS.md` non-goals and needs an explicit product decision before starting.
 
-**Palette quality (post-1.0.0, unreleased):** salience-based selection (ADR-015), palettes up to 48 colors, and an Auto size (ADR-016) are implemented on `master` and will ship in the next release. The landing page shows them as coming soon until that release exists.
+**Palette quality (1.1.0):** salience-based selection (ADR-015), palettes up to 48 colors, and an Auto size (ADR-016) shipped in 1.1.0.
 
 **Deferred idea:** paint mixing recipes from a palette (ADR-017). It is recorded with effort estimates and a suggested one-day spike, but is not scheduled and needs explicit approval first.
 
