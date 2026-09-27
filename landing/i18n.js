@@ -129,6 +129,9 @@ window.COLORCUT_I18N = {
     "cta.button": "Baixar o ColorCut",
     "cta.note": "Versão 1.0 · DMG para Apple Silicon",
 
+    "rel.notes": "Notas da versão",
+    "rel.dmg": "Baixar o DMG direto (179 MB)",
+    "rel.release": "Release",
     "foot.credits": "Fotos de exemplo do Unsplash por",
     "foot.rights": "© 2026 Gutu Galuppo. Todos os direitos reservados.",
     "foot.photoroom": "Photoroom é uma marca de seus respectivos proprietários.",
@@ -262,6 +265,9 @@ window.COLORCUT_I18N = {
     "cta.button": "Download ColorCut",
     "cta.note": "Version 1.0 · DMG for Apple Silicon",
 
+    "rel.notes": "Release notes",
+    "rel.dmg": "Download the DMG directly (179 MB)",
+    "rel.release": "Release",
     "foot.credits": "Example photos from Unsplash by",
     "foot.rights": "© 2026 Gutu Galuppo. All rights reserved.",
     "foot.photoroom": "Photoroom is a trademark of its respective owners.",
@@ -395,6 +401,9 @@ window.COLORCUT_I18N = {
     "cta.button": "Descargar ColorCut",
     "cta.note": "Versión 1.0 · DMG para Apple Silicon",
 
+    "rel.notes": "Notas de la versión",
+    "rel.dmg": "Descargar el DMG directamente (179 MB)",
+    "rel.release": "Versión",
     "foot.credits": "Fotos de ejemplo de Unsplash por",
     "foot.rights": "© 2026 Gutu Galuppo. Todos los derechos reservados.",
     "foot.photoroom": "Photoroom es una marca de sus respectivos propietarios.",
@@ -528,6 +537,9 @@ window.COLORCUT_I18N = {
     "cta.button": "ColorCut herunterladen",
     "cta.note": "Version 1.0 · DMG für Apple Silicon",
 
+    "rel.notes": "Versionshinweise",
+    "rel.dmg": "DMG direkt herunterladen (179 MB)",
+    "rel.release": "Release",
     "foot.credits": "Beispielfotos von Unsplash von",
     "foot.rights": "© 2026 Gutu Galuppo. Alle Rechte vorbehalten.",
     "foot.photoroom": "Photoroom ist eine Marke der jeweiligen Inhaber.",

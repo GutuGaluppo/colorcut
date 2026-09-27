@@ -409,3 +409,17 @@ button { font: inherit; color: inherit; }
   transition: opacity 0.2s ease, transform 0.2s ease; z-index: 80;
 }
 .toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- Release links ---------- */
+.release-link {
+  display: inline-flex; align-items: center; gap: 8px; margin-top: 14px;
+  font-size: 13px; font-weight: 600; color: var(--text-2); text-decoration: none;
+}
+.release-link:hover { color: var(--text); }
+.release-link__tag {
+  font-size: 12px; font-weight: 700; color: #1b64c2; background: rgba(47, 140, 255, 0.12);
+  padding: 2px 8px; border-radius: 999px;
+}
+.cta__links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; font-size: 14px !important; }
+.cta__links a, .site-footer__links a { color: #1b64c2; font-weight: 600; text-underline-offset: 3px; }
+.site-footer__links { display: flex; gap: 8px; }
