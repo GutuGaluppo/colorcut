@@ -460,7 +460,6 @@ button { font: inherit; color: inherit; }
 
 /* ---------- Trim to subject ---------- */
 .trim { display: grid; gap: 28px; }
-.trim__shots { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .trim__pairs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
 .trim__card {
   margin: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px;
@@ -482,4 +481,15 @@ button { font: inherit; color: inherit; }
   .trim__pairs, .trim__features { grid-template-columns: 1fr; }
   .trim__frame { height: 240px; }
 }
-@media (max-width: 600px) { .trim__shots { grid-template-columns: 1fr; } }
+.trim__rows { display: grid; gap: 56px; }
+.trim__row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 48px; align-items: center; }
+.trim__row--rev { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
+.trim__row--rev .shot { order: 2; }
+.trim__row .shot { margin: 0; }
+.trim__text { display: grid; gap: 12px; }
+.trim__text h3 { margin: 0; font-size: 24px; line-height: 1.25; }
+.trim__text p { margin: 0; font-size: 16px; line-height: 1.6; color: var(--text-2); }
+@media (max-width: 760px) {
+  .trim__row, .trim__row--rev { grid-template-columns: 1fr; gap: 20px; }
+  .trim__row--rev .shot { order: 0; }
+}
