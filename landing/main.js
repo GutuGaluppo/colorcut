@@ -301,7 +301,7 @@
       const img = btn.querySelector("img");
       lightboxImg.src = img.src;
       lightboxImg.alt = img.alt;
-      lightboxCaption.textContent = btn.parentElement.querySelector("figcaption").textContent;
+      lightboxCaption.textContent = btn.parentElement.querySelector("figcaption")?.textContent ?? "";
       if (typeof lightbox.showModal === "function") lightbox.showModal();
       else window.open(img.src, "_blank", "noopener");
     });
