@@ -20,6 +20,7 @@ Published to GitHub Pages at https://gutugaluppo.github.io/colorcut/ by `.github
 - The portrait (`averie-after.webp`) is a licensed Photoroom (ColorCut Pro) cutout, labeled "Pro" on the page. The local model loses the white top against the light wall (ADR-005 limitation), and that local result is kept as `averie-local.webp` for the local vs Pro comparison. The app screenshots of that photo were captured through the real "Remove with Photoroom" path.
 - The palettes and timings in `main.js` come from `palette_service::extract_palette` (8 colors, original and subject). The timings were measured on the Mac that generated the assets. The first run also includes model loading.
 - The "New in 1.1" section (`#next`) compares Vernazza's 16-color palette from the 1.0.0 pipeline (plain median cut) with 1.1.0's, and shows 1.1.0's Auto result. The 8-color examples above were regenerated with the 1.1.0 engine.
+- `assets/trim/*-trimmed.webp`: the "Recortar ao assunto" section. They are the `*-after.webp` cutouts cropped with the same rule as `trim_service` (alpha >= 64, padding max(16, 2% of the longest side)). They are not app screenshots, so recapture them from the app if the trim rule changes.
 - Example photos are from Unsplash. Photographers are credited in the footer.
 
 When you change the UI or the model, capture the assets again so the page keeps showing real output.

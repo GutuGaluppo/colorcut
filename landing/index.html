@@ -38,6 +38,7 @@
           <a href="#palettes" data-i18n="nav.palettes">Paletas</a>
           <a href="#privacy" data-i18n="nav.privacy">Privacidade</a>
           <a href="#next" data-i18n="nav.next">Novidades</a>
+          <a href="#trim" data-i18n="nav.trim">Recortar</a>
           <a href="#faq" data-i18n="nav.faq">Dúvidas</a>
         </nav>
         <div class="site-header__actions">
@@ -237,6 +238,55 @@
               <li><strong data-i18n="next.f3.title"></strong><span data-i18n="next.f3.body"></span></li>
             </ul>
             <p class="next__note" role="note"><span aria-hidden="true">ⓘ</span> <span data-i18n="next.note"></span></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Trim to subject (ADR-018) -->
+      <section class="section section--soft" id="trim">
+        <div class="container">
+          <header class="section__head">
+            <p class="kicker"><span class="pill pill--soon" data-i18n="trim.badge">Novo</span></p>
+            <h2 data-i18n="trim.title">Recortar ao assunto</h2>
+            <p class="section__lead" data-i18n="trim.lead"></p>
+          </header>
+
+          <div class="trim">
+            <div class="shots trim__shots">
+              <figure class="shot"><button type="button" class="shot__open"><img src="assets/trim/step-1.webp?v=5" loading="lazy" width="1400" height="934" data-i18n-attr="alt:trim.step1" alt="" /></button><figcaption data-i18n="trim.step1"></figcaption></figure>
+              <figure class="shot"><button type="button" class="shot__open"><img src="assets/trim/step-2.webp?v=5" loading="lazy" width="1400" height="934" data-i18n-attr="alt:trim.step2" alt="" /></button><figcaption data-i18n="trim.step2"></figcaption></figure>
+              <figure class="shot"><button type="button" class="shot__open"><img src="assets/trim/step-3.webp?v=5" loading="lazy" width="1400" height="934" data-i18n-attr="alt:trim.step3" alt="" /></button><figcaption data-i18n="trim.step3"></figcaption></figure>
+              <figure class="shot"><button type="button" class="shot__open"><img src="assets/trim/step-4.webp?v=5" loading="lazy" width="1400" height="934" data-i18n-attr="alt:trim.step4" alt="" /></button><figcaption data-i18n="trim.step4"></figcaption></figure>
+            </div>
+            <div class="trim__pairs">
+              <figure class="trim__card">
+                <div class="trim__col">
+                  <div class="trim__frame"><img src="assets/examples/amber-after.webp" loading="lazy" width="1400" height="2100" data-i18n-attr="alt:trim.alt_b" alt="" /></div>
+                  <span class="trim__label" data-i18n="trim.before">Antes · quadro completo</span>
+                </div>
+                <div class="trim__col">
+                  <div class="trim__frame"><img src="assets/trim/amber-trimmed.webp" loading="lazy" width="663" height="1039" data-i18n-attr="alt:trim.alt_a" alt="" /></div>
+                  <span class="trim__label trim__label--new" data-i18n="trim.after">Depois · recortado ao assunto</span>
+                </div>
+              </figure>
+              <figure class="trim__card">
+                <div class="trim__col">
+                  <div class="trim__frame"><img src="assets/examples/freddie-after.webp" loading="lazy" width="1400" height="933" data-i18n-attr="alt:trim.alt_b" alt="" /></div>
+                  <span class="trim__label" data-i18n="trim.before">Antes · quadro completo</span>
+                </div>
+                <div class="trim__col">
+                  <div class="trim__frame"><img src="assets/trim/freddie-trimmed.webp" loading="lazy" width="663" height="743" data-i18n-attr="alt:trim.alt_a" alt="" /></div>
+                  <span class="trim__label trim__label--new" data-i18n="trim.after">Depois · recortado ao assunto</span>
+                </div>
+              </figure>
+            </div>
+
+            <ul class="trim__features">
+              <li><strong data-i18n="trim.f1t"></strong><span data-i18n="trim.f1b"></span></li>
+              <li><strong data-i18n="trim.f2t"></strong><span data-i18n="trim.f2b"></span></li>
+              <li><strong data-i18n="trim.f3t"></strong><span data-i18n="trim.f3b"></span></li>
+            </ul>
+            <p class="next__note" role="note"><span aria-hidden="true">ⓘ</span> <span data-i18n="trim.note"></span></p>
           </div>
         </div>
       </section>
