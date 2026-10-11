@@ -3,3 +3,4 @@ pub mod export;
 pub mod image_io;
 pub mod palette_extract;
 pub mod photoroom;
+pub mod trim;

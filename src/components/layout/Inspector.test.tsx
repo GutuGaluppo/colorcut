@@ -46,6 +46,10 @@ function renderInspector(overrides: Partial<Parameters<typeof Inspector>[0]> = {
       viewMode="original"
       isProcessing={false}
       canRemoveBackground={false}
+      canTrimToSubject={false}
+      isTrimmed={false}
+      onTrimToSubject={vi.fn()}
+      onRestoreFullFrame={vi.fn()}
       background="checker"
       onBackgroundChange={vi.fn()}
       onViewModeChange={vi.fn()}
@@ -128,6 +132,26 @@ describe("Inspector", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /remove background/i }));
     expect(onRemoveBackground).toHaveBeenCalledTimes(1);
+  });
+
+  it("enables trim to subject only once a cutout exists", () => {
+    const { unmount } = renderInspector({ image: asset, removal, canTrimToSubject: false });
+    expect(screen.getByRole("button", { name: /trim to subject/i })).toBeDisabled();
+    unmount();
+
+    renderInspector({ image: asset, removal, canTrimToSubject: true });
+    expect(screen.getByRole("button", { name: /trim to subject/i })).toBeEnabled();
+  });
+
+  it("offers restore full frame only while the image is trimmed", () => {
+    const { unmount } = renderInspector({ image: asset, removal, canTrimToSubject: true });
+    expect(screen.queryByRole("button", { name: /restore full frame/i })).not.toBeInTheDocument();
+    unmount();
+
+    const onRestoreFullFrame = vi.fn();
+    renderInspector({ image: asset, removal, canTrimToSubject: true, isTrimmed: true, onRestoreFullFrame });
+    fireEvent.click(screen.getByRole("button", { name: /restore full frame/i }));
+    expect(onRestoreFullFrame).toHaveBeenCalledTimes(1);
   });
 
   it("disables the cloud cutout action without an image", () => {

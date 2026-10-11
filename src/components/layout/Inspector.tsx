@@ -1,4 +1,4 @@
-import { Check, Cloud, Eye, EyeOff, Info, Palette, Scissors, Sparkles } from "lucide-react";
+import { Check, Cloud, Crop, Eye, EyeOff, Info, Palette, RotateCcw, Scissors, Sparkles } from "lucide-react";
 import { useState } from "react";
 import type {
   ImageAsset,
@@ -32,6 +32,10 @@ type InspectorProps = {
   viewMode: ViewMode;
   isProcessing: boolean;
   canRemoveBackground: boolean;
+  canTrimToSubject: boolean;
+  isTrimmed: boolean;
+  onTrimToSubject: () => void;
+  onRestoreFullFrame: () => void;
   background: PreviewBackground;
   onBackgroundChange: (background: PreviewBackground) => void;
   onViewModeChange: (mode: ViewMode) => void;
@@ -62,6 +66,10 @@ export function Inspector({
   viewMode,
   isProcessing,
   canRemoveBackground,
+  canTrimToSubject,
+  isTrimmed,
+  onTrimToSubject,
+  onRestoreFullFrame,
   background,
   onBackgroundChange,
   onViewModeChange,
@@ -114,6 +122,16 @@ export function Inspector({
         >
           <span><Cloud size={18} /> Remove with Photoroom</span>
         </button>
+
+        <button className="action-card" type="button" disabled={!canTrimToSubject} onClick={onTrimToSubject}>
+          <span><Crop size={18} /> Trim to subject</span>
+        </button>
+
+        {isTrimmed && (
+          <button className="action-card" type="button" onClick={onRestoreFullFrame}>
+            <span><RotateCcw size={18} /> Restore full frame</span>
+          </button>
+        )}
 
         <div className="license-field">
           <label htmlFor="photoroom-license">ColorCut Pro license</label>

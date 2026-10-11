@@ -7,3 +7,4 @@ pub mod palette_image;
 pub mod palette_selection;
 pub mod palette_service;
 pub mod photoroom_removal_service;
+pub mod trim_service;

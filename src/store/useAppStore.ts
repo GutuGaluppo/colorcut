@@ -9,6 +9,9 @@ import type {
   RemovalResult,
 } from "../types/domain";
 
+/** The full-frame image and cutout, kept so a trim can be undone. */
+type FullFrame = { image: ImageAsset; removal: RemovalResult };
+
 export const ZOOM_MIN = 0.25;
 export const ZOOM_MAX = 4;
 const ZOOM_STEP = 0.25;
@@ -28,6 +31,7 @@ type AppState = {
   viewMode: ViewMode;
   sliderPosition: number;
   zoom: number;
+  fullFrame: FullFrame | null;
   setImage: (image: ImageAsset) => void;
   setOperation: (status: OperationStatus, message?: string) => void;
   setPreviewBackground: (background: PreviewBackground) => void;
@@ -42,10 +46,18 @@ type AppState = {
   zoomOut: () => void;
   resetZoom: () => void;
   clearImage: () => void;
+  applyTrim: (image: ImageAsset, removal: RemovalResult) => void;
+  restoreFullFrame: () => void;
 };
 
 function revoke(url?: string) {
   if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
+}
+
+/** Frees every blob URL the store holds for the current image, including a trim's full frame. */
+function releaseFrames(state: Pick<AppState, "image" | "fullFrame">) {
+  revoke(state.image?.sourceUrl);
+  if (state.fullFrame) revoke(state.fullFrame.image.sourceUrl);
 }
 
 function clampZoom(zoom: number) {
@@ -64,13 +76,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   viewMode: "original",
   sliderPosition: 50,
   zoom: ZOOM_DEFAULT,
+  fullFrame: null,
 
   setImage: (image) => {
-    revoke(get().image?.sourceUrl);
+    releaseFrames(get());
     set({
       image,
       removal: null,
       palette: null,
+      fullFrame: null,
       operationStatus: "success",
       message: "Image ready",
       viewMode: "original",
@@ -81,8 +95,18 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setOperation: (operationStatus, message = "") => set({ operationStatus, message }),
   setPreviewBackground: (previewBackground) => set({ previewBackground }),
-  setRemoval: (removal) =>
-    set({ removal, viewMode: "cutout", operationStatus: "success", message: "Background removed" }),
+  setRemoval: (removal) => {
+    // A new cutout becomes the base frame, so the earlier full frame is no longer reachable.
+    const { fullFrame, image } = get();
+    if (fullFrame && fullFrame.image.sourceUrl !== image?.sourceUrl) revoke(fullFrame.image.sourceUrl);
+    set({
+      removal,
+      fullFrame: null,
+      viewMode: "cutout",
+      operationStatus: "success",
+      message: "Background removed",
+    });
+  },
   setViewMode: (viewMode) => set({ viewMode }),
   setSliderPosition: (position) => set({ sliderPosition: Math.min(100, Math.max(0, position)) }),
   setPalette: (palette, message = "Palette extracted") => set({ palette, operationStatus: "success", message }),
@@ -93,12 +117,38 @@ export const useAppStore = create<AppState>((set, get) => ({
   zoomOut: () => set((state) => ({ zoom: clampZoom(state.zoom - ZOOM_STEP) })),
   resetZoom: () => set({ zoom: ZOOM_DEFAULT }),
 
+  applyTrim: (image, removal) => {
+    const state = get();
+    if (!state.image || !state.removal) return;
+    // The current frame is itself a trimmed copy when a full frame is held; release it before replacing.
+    if (state.fullFrame && state.image.sourceUrl !== state.fullFrame.image.sourceUrl) {
+      revoke(state.image.sourceUrl);
+    }
+    set({
+      image,
+      removal,
+      fullFrame: state.fullFrame ?? { image: state.image, removal: state.removal },
+    });
+  },
+
+  restoreFullFrame: () => {
+    const state = get();
+    if (!state.fullFrame || !state.image) return;
+    revoke(state.image.sourceUrl);
+    set({
+      image: state.fullFrame.image,
+      removal: state.fullFrame.removal,
+      fullFrame: null,
+    });
+  },
+
   clearImage: () => {
-    revoke(get().image?.sourceUrl);
+    releaseFrames(get());
     set({
       image: null,
       removal: null,
       palette: null,
+      fullFrame: null,
       operationStatus: "idle",
       message: "Ready",
       viewMode: "original",

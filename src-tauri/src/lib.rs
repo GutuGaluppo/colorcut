@@ -55,6 +55,7 @@ pub fn run() {
             commands::export::export_cutout,
             commands::export::write_text_file,
             commands::export::export_palette_image,
+            commands::trim::trim_to_subject,
             commands::photoroom::remove_background_cloud,
             commands::photoroom::set_photoroom_license,
             commands::photoroom::get_photoroom_license_status,
