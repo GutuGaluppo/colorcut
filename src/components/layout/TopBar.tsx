@@ -49,12 +49,13 @@ export function TopBar({
   }, [isMenuOpen]);
 
   return (
-    <header className="topbar">
-      <div className="product-lockup">
+    <header className="topbar" data-tauri-drag-region>
+      <div className="topbar__drag-strip" data-tauri-drag-region aria-hidden="true" />
+      <div className="product-lockup" data-tauri-drag-region>
         <BrandMark />
-        <div>
-          <strong>ColorCut</strong>
-          <span>palette + cutout utility</span>
+        <div data-tauri-drag-region>
+          <strong data-tauri-drag-region>ColorCut</strong>
+          <span data-tauri-drag-region>palette + cutout utility</span>
         </div>
       </div>
 
