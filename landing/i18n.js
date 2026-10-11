@@ -169,7 +169,7 @@ window.COLORCUT_I18N = {
     "cta.title": "Pronto para recortar?",
     "cta.lead": "Baixe o ColorCut e transforme qualquer foto em recorte e paleta em segundos.",
     "cta.button": "Baixar o ColorCut",
-    "cta.note": "Versão 1.1 · DMG para Apple Silicon",
+    "cta.note": "Versão 1.2 · DMG para Apple Silicon",
 
     "rel.notes": "Notas da versão",
     "rel.dmg": "Baixar o DMG direto (179 MB)",
@@ -347,7 +347,7 @@ window.COLORCUT_I18N = {
     "cta.title": "Ready to cut?",
     "cta.lead": "Download ColorCut and turn any photo into a cutout and a palette in seconds.",
     "cta.button": "Download ColorCut",
-    "cta.note": "Version 1.1 · DMG for Apple Silicon",
+    "cta.note": "Version 1.2 · DMG for Apple Silicon",
 
     "rel.notes": "Release notes",
     "rel.dmg": "Download the DMG directly (179 MB)",
@@ -525,7 +525,7 @@ window.COLORCUT_I18N = {
     "cta.title": "¿Listo para recortar?",
     "cta.lead": "Descarga ColorCut y convierte cualquier foto en un recorte y una paleta en segundos.",
     "cta.button": "Descargar ColorCut",
-    "cta.note": "Versión 1.1 · DMG para Apple Silicon",
+    "cta.note": "Versión 1.2 · DMG para Apple Silicon",
 
     "rel.notes": "Notas de la versión",
     "rel.dmg": "Descargar el DMG directamente (179 MB)",
@@ -703,7 +703,7 @@ window.COLORCUT_I18N = {
     "cta.title": "Bereit zum Freistellen?",
     "cta.lead": "Lade ColorCut und mach aus jedem Foto in Sekunden einen Freisteller und eine Palette.",
     "cta.button": "ColorCut herunterladen",
-    "cta.note": "Version 1.1 · DMG für Apple Silicon",
+    "cta.note": "Version 1.2 · DMG für Apple Silicon",
 
     "rel.notes": "Versionshinweise",
     "rel.dmg": "DMG direkt herunterladen (179 MB)",
