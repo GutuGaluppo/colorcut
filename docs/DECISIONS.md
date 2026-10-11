@@ -288,3 +288,22 @@ Measured on `Images_QA` before adopting:
 3. Decide between A, B and C with real results.
 
 Before starting, the owner picks the medium and, optionally, a reference paint line.
+
+## ADR-018 — "Trim to subject" crops the working frame to the cutout
+
+**Status:** Accepted (2026-10-11). Requires manual QA on the packaged app before release.
+
+**Context:** a cutout of a subject that sits in a large frame keeps a lot of empty space. The owner asked for a way to work with the image's real dimensions. This is a new editing tool, so it needed explicit approval under `AGENTS.md` (the owner approved the automatic trim, not a manual crop).
+
+**Decision:**
+- The action is one automatic step, "Trim to subject". There is no manual crop UI.
+- Native: `trim_to_subject` computes the bounding box of pixels with alpha above 64 (`services/trim_service.rs`), adds padding (clamped to the image), and writes a new cutout PNG to the cutout cache. The previous cutout is not modified.
+- Calibration (2026-10-11), measured on the app's cached cutouts: at alpha > 16, faint haze stretched the crop to nearly the full frame (e.g. 3957×4518 where the subject is about 1122×3806 at alpha > 64; 3149×3327 vs 2030×3316). Alpha > 64 removed that inflation on every sample without cutting into solid subject pixels. Filtering small connected components added no further gain, so it was not adopted.
+- Padding is 2% of the longer side, with a minimum of 16 px (`trimPaddingFor` in `features/trim/trimToSubject.ts`).
+- Renderer: the original is cropped to the same rectangle on a canvas (`features/trim/trimToSubject.ts`). Original and cutout stay aligned in every preview mode and in palette extraction.
+- The store keeps the first full frame (`fullFrame`), so "Restore full frame" undoes the trim. A new cutout drops that history, and clearing the image releases every blob URL.
+- The source file is never overwritten, consistent with the existing rules.
+
+**Not done:** an adjustable padding control, a manual crop with handles, aspect ratios, and trimming the palette results. Each would be a separate decision.
+
+**Why the original is cropped in the renderer:** the CSP's `connect-src` allows only `ipc:` and `blob:`, so `fetch` of an `asset:` URL is not allowed. The cropped original is produced from the existing blob instead of being read back from native. (Inferred from `tauri.conf.json`; not exercised in the packaged app.)
