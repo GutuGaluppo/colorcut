@@ -99,7 +99,8 @@
       b.setAttribute("aria-pressed", String(b.dataset.lang === lang));
     });
     document.querySelectorAll(".shot").forEach((fig) => {
-      fig.querySelector("img").alt = fig.querySelector("figcaption").textContent;
+      const caption = fig.querySelector("figcaption");
+      if (caption) fig.querySelector("img").alt = caption.textContent;
     });
     renderTabs();
     showExample(currentExample, false);
