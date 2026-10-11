@@ -125,4 +125,62 @@ describe("useAppStore", () => {
     useAppStore.getState().setSliderPosition(125);
     expect(useAppStore.getState().sliderPosition).toBe(100);
   });
+
+  describe("trim to subject", () => {
+    const trimmedAsset = makeAsset({ sourceUrl: "blob:trimmed", width: 40, height: 30 });
+    const cutout = { cutoutPath: "/cache/cutout.png", processingTimeMs: 10 };
+    const trimmedCutout = { cutoutPath: "/cache/cutout-trim.png", processingTimeMs: 10 };
+
+    it("keeps the full frame so a trim can be undone", () => {
+      useAppStore.setState({ image: makeAsset(), removal: cutout });
+
+      useAppStore.getState().applyTrim(trimmedAsset, trimmedCutout);
+      expect(useAppStore.getState().image).toEqual(trimmedAsset);
+      expect(useAppStore.getState().removal).toEqual(trimmedCutout);
+
+      useAppStore.getState().restoreFullFrame();
+      expect(useAppStore.getState().image).toEqual(makeAsset());
+      expect(useAppStore.getState().removal).toEqual(cutout);
+      expect(useAppStore.getState().fullFrame).toBeNull();
+    });
+
+    it("keeps the first full frame across repeated trims", () => {
+      useAppStore.setState({ image: makeAsset(), removal: cutout });
+
+      useAppStore.getState().applyTrim(trimmedAsset, trimmedCutout);
+      useAppStore.getState().applyTrim(makeAsset({ sourceUrl: "blob:again" }), trimmedCutout);
+      useAppStore.getState().restoreFullFrame();
+
+      expect(useAppStore.getState().image).toEqual(makeAsset());
+    });
+
+    it("drops the full frame when a new cutout replaces the trimmed one", () => {
+      useAppStore.setState({ image: makeAsset(), removal: cutout });
+      useAppStore.getState().applyTrim(trimmedAsset, trimmedCutout);
+
+      useAppStore.getState().setRemoval(cutout);
+
+      expect(useAppStore.getState().fullFrame).toBeNull();
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:one");
+    });
+
+    it("releases the full frame's blob when the image is cleared", () => {
+      useAppStore.setState({ image: makeAsset(), removal: cutout });
+      useAppStore.getState().applyTrim(trimmedAsset, trimmedCutout);
+
+      useAppStore.getState().clearImage();
+
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:one");
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:trimmed");
+    });
+
+    it("ignores a trim when there is no cutout yet", () => {
+      useAppStore.setState({ image: makeAsset(), removal: null });
+
+      useAppStore.getState().applyTrim(trimmedAsset, trimmedCutout);
+
+      expect(useAppStore.getState().image).toEqual(makeAsset());
+      expect(useAppStore.getState().fullFrame).toBeNull();
+    });
+  });
 });

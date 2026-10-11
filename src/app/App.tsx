@@ -8,6 +8,7 @@ import { ImageWorkspace } from "../components/preview/ImageWorkspace";
 import { Toast } from "../components/ui/Toast";
 import { getClipboardImage, importImageFile, readObjectUrlBytes } from "../features/import/importImage";
 import { formatPalette, type PaletteExportFormat } from "../features/palette/exportPalette";
+import { cropImageToRect, trimPaddingFor } from "../features/trim/trimToSubject";
 import {
   cacheSourceImage,
   cutoutPreviewUrl,
@@ -18,6 +19,7 @@ import {
   removeBackground,
   removeBackgroundCloud,
   setPhotoroomLicense,
+  trimToSubject,
   writeTextFile,
 } from "../lib/tauri/commands";
 import { useAppStore } from "../store/useAppStore";
@@ -77,6 +79,9 @@ export function App() {
     zoomOut,
     resetZoom,
     clearImage,
+    fullFrame,
+    applyTrim,
+    restoreFullFrame,
   } = useAppStore();
 
   useEffect(() => () => useAppStore.getState().clearImage(), []);
@@ -159,6 +164,29 @@ export function App() {
         setOperation("error", errorMessage(error, "Cloud cutout failed."));
       }
     }
+  }
+
+  async function handleTrimToSubject() {
+    if (!image || !removal) return;
+    setOperation("processing", "Trimming to subject…");
+    try {
+      const trim = await trimToSubject(removal.cutoutPath, trimPaddingFor(image.width, image.height));
+      // The crop is in the current frame's pixels, which is what `image` holds, so it applies to both.
+      const sourceUrl = await cropImageToRect(image.sourceUrl, trim);
+      applyTrim(
+        { ...image, sourceUrl, width: trim.width, height: trim.height },
+        { ...removal, cutoutPath: trim.cutoutPath },
+      );
+      setOperation("success", "Trimmed to subject");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : errorMessage(error, "Trim failed.");
+      setOperation("error", message);
+    }
+  }
+
+  function handleRestoreFullFrame() {
+    restoreFullFrame();
+    setOperation("success", "Restored full frame");
   }
 
   async function handleSavePhotoroomLicense(code: string) {
@@ -273,6 +301,7 @@ export function App() {
   const canRemoveBackground = Boolean(image) && !isProcessing;
   const canRemoveBackgroundCloud = Boolean(image) && !isProcessing;
   const canExport = Boolean(removal) && !isProcessing;
+  const canTrimToSubject = Boolean(removal) && !isProcessing;
   const canExtractPalette = Boolean(image) && !isProcessing && (paletteSource === "original" || Boolean(removal));
   const cutoutSrc = removal ? cutoutPreviewUrl(removal.cutoutPath) : undefined;
 
@@ -326,6 +355,10 @@ export function App() {
           viewMode={viewMode}
           isProcessing={isProcessing}
           canRemoveBackground={canRemoveBackground}
+          canTrimToSubject={canTrimToSubject}
+          isTrimmed={fullFrame !== null}
+          onTrimToSubject={() => void handleTrimToSubject()}
+          onRestoreFullFrame={handleRestoreFullFrame}
           background={previewBackground}
           onBackgroundChange={setPreviewBackground}
           onViewModeChange={setViewMode}

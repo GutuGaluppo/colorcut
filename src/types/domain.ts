@@ -42,6 +42,14 @@ export type PaletteResult = {
 
 export type PreviewBackground = "checker" | "white" | "black";
 
+export type TrimResult = {
+  cutoutPath: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
 export type PhotoroomLicenseStatus = {
   hasLicense: boolean;
 };

@@ -7,6 +7,7 @@ import type {
   PhotoroomLicenseStatus,
   RemovalResult,
   RgbColor,
+  TrimResult,
 } from "../../types/domain";
 
 function assertTauriRuntime() {
@@ -50,6 +51,13 @@ export async function getPhotoroomLicenseStatus(): Promise<PhotoroomLicenseStatu
 export async function exportCutout(sourcePath: string, destinationPath: string): Promise<void> {
   assertTauriRuntime();
   return invoke<void>("export_cutout", { sourcePath, destinationPath });
+}
+
+/// Crops the cutout to its subject plus `padding` pixels and returns the new
+/// cutout path with the crop's position in the image.
+export async function trimToSubject(cutoutPath: string, padding: number): Promise<TrimResult> {
+  assertTauriRuntime();
+  return invoke<TrimResult>("trim_to_subject", { cutoutPath, padding });
 }
 
 export function cutoutPreviewUrl(cutoutPath: string): string {
