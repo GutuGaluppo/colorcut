@@ -46,7 +46,7 @@ pub fn read_cached_bytes(path: &str) -> Result<Vec<u8>, ImageServiceError> {
     fs::read(path).map_err(|_| ImageServiceError::CacheMissing)
 }
 
-fn unique_suffix() -> String {
+pub fn unique_suffix() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
